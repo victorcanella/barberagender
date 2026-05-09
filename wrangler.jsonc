@@ -1,14 +1,9 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "barberagender",
-  "compatibility_date": "2026-05-08",
-  "observability": {
-    "enabled": true
-  },
+  "name": "barber-agender",
+  "compatibility_date": "2026-05-09",
   "assets": {
-    "directory": "."
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ]
+    "directory": "./",
+    "not_found_handling": "single-page-application"
+  }
 }
+
