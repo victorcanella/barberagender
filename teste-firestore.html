@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Teste Firestore</title>
+<style>
+  body { font-family: sans-serif; padding: 24px; max-width: 600px; margin: 0 auto; }
+  button { padding: 12px 24px; margin: 8px 0; font-size: 16px; cursor: pointer; }
+  pre { background: #f0f0f0; padding: 12px; border-radius: 6px; max-height: 300px; overflow: auto; }
+  .ok { color: green; }
+  .err { color: red; }
+</style>
+</head>
+<body>
+  <h1>🧪 Teste Firestore</h1>
+  <p>Página de testes pra confirmar conexão com o Firestore. Não tem nada do app real aqui.</p>
+
+  <button onclick="gravarTeste()">📝 Gravar documento de teste</button>
+  <button onclick="lerTeste()">📖 Ler documentos da coleção</button>
+
+  <h3>Saída:</h3>
+  <pre id="saida">Aguardando…</pre>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
+import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+
+// ========== COLE A SUA CONFIG AQUI ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyAWnLSVSGuIoMZUs5mBqECJ-2BVmbNqp7c",
+  authDomain: "barber-agender-saas.firebaseapp.com",
+  projectId: "barber-agender-saas",
+  storageBucket: "barber-agender-saas.firebasestorage.app",
+  messagingSenderId: "346367300512",
+  appId: "1:346367300512:web:22bef8a4a4b81076234ac5"
+};
+// ============================================
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const saida = document.getElementById('saida');
+function log(msg, cls){ saida.innerHTML = `<span class="${cls||''}">${msg}</span>`; }
+
+window.gravarTeste = async function(){
+  log('Gravando…');
+  try {
+    const ref = await addDoc(collection(db, 'testes'), {
+      mensagem: 'Olá Firestore!',
+      criadoEm: serverTimestamp(),
+      navegador: navigator.userAgent
+    });
+    log(`✅ Documento gravado! ID: ${ref.id}`, 'ok');
+  } catch(e) {
+    log(`❌ Erro: ${e.message}`, 'err');
+  }
+};
+
+window.lerTeste = async function(){
+  log('Lendo…');
+  try {
+    const snap = await getDocs(collection(db, 'testes'));
+    const docs = [];
+    snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+    log(`✅ ${docs.length} documento(s) encontrado(s):\n\n${JSON.stringify(docs, null, 2)}`, 'ok');
+  } catch(e) {
+    log(`❌ Erro: ${e.message}`, 'err');
+  }
+};
+</script>
+</body>
+</html>
