@@ -535,7 +535,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 <!-- ═════ Firebase Firestore SDK (nova arquitetura, ainda em migração) ═════ -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
 
 // ========== COLE A SUA CONFIG DO PROJETO NOVO AQUI ==========
 const firebaseConfig = {
@@ -565,7 +565,13 @@ window.fs = {
     const out = {};
     snap.forEach(d => { out[d.id] = d.data(); });
     return out;
+    },
+
+    async fetchOne(subPath, id) {
+    const snap = await getDoc(doc(db, `shops/${SHOP_ID}/${subPath}/${id}`));
+    return snap.exists() ? snap.data() : null;
   },
+  
   async add(subPath, data) {
     const ref = collection(db, `shops/${SHOP_ID}/${subPath}`);
     const docRef = await addDoc(ref, data);
@@ -667,7 +673,7 @@ async function loadBarbers(force){
     loadedBarbers=[{_key:'__master',name:'Dono',pass:ADMIN_PASS,isOwner:true,shareWithOwner:true,ts:0}];
     return loadedBarbers;
   }
-  const data=await fbFetch('barbeiros');
+  const data=await fs.fetchAll('barbeiros');
   loadedBarbers=data?Object.entries(data).map(([k,v])=>({...v,_key:k}))
     .sort((a,b)=>{if(a.isOwner&&!b.isOwner)return -1;if(b.isOwner&&!a.isOwner)return 1;return (a.ts||0)-(b.ts||0);}):[];
   return loadedBarbers;
@@ -1341,7 +1347,7 @@ async function openItemModal(key,catKey){
   const cd=await fs.fetchAll('categorias');
   const cs=cd?Object.entries(cd).map(([k,v])=>({...v,_key:k})).sort((a,b)=>a.ts-b.ts):[];
   document.getElementById('item-cat-sel').innerHTML=cs.map(c=>`<option value="${c._key}" ${c._key===catKey?'selected':''}>${c.name}</option>`).join('');
-  if(key){const i=await fbFetch(`itens/${key}`);document.getElementById('item-icon-inp').value=i.icon||'';document.getElementById('item-name-inp').value=i.name||'';document.getElementById('item-price-inp').value=i.price||'';document.getElementById('item-time-inp').value=i.time||'';document.getElementById('item-cat-sel').value=i.catKey||catKey;}
+  if(key){const i=await fs.fetchOne('itens', key);document.getElementById('item-icon-inp').value=i.icon||'';document.getElementById('item-name-inp').value=i.name||'';document.getElementById('item-price-inp').value=i.price||'';document.getElementById('item-time-inp').value=i.time||'';document.getElementById('item-cat-sel').value=i.catKey||catKey;}
   else{document.getElementById('item-icon-inp').value='';document.getElementById('item-name-inp').value='';document.getElementById('item-price-inp').value='';document.getElementById('item-time-inp').value='';}
   document.getElementById('item-modal').classList.add('open');
 }
@@ -1464,10 +1470,10 @@ async function saveBarber(){
     const editing=loadedBarbers.find(x=>x._key===barberSt.key);
     const data={name,pass,subtitle,phone};
     if(!editing.isOwner)data.shareWithOwner=share;
-    await fbPatch(`barbeiros/${barberSt.key}`,data);
+    await fs.update('barbeiros', barberSt.key, data);
     if(currentUser&&currentUser.id===barberSt.key){currentUser.name=name;adjustAdminUIForUser();}
   } else {
-    await fbPost('barbeiros',{name,pass,subtitle,phone,isOwner:false,shareWithOwner:share,ts:Date.now()});
+    await await fs.add('barbeiros',{name,pass,subtitle,phone,isOwner:false,shareWithOwner:share,ts:Date.now()});
   }
   closeBarberModal();
   await loadBarbersTab();
@@ -1477,7 +1483,7 @@ async function deleteBarber(key){
   if(!b)return;
   if(b.isOwner){alert('O dono não pode ser removido.');return;}
   if(!confirm(`Excluir ${b.name}? O histórico de agendamentos permanece.`))return;
-  await fbDelete(`barbeiros/${key}`);
+  await fs.remove('barbeiros', key);
   await loadBarbersTab();
 }
 
@@ -1817,7 +1823,7 @@ async function authenticateAdmin(pass){
     let owner=loadedBarbers.find(b=>b.isOwner);
     if(!owner){
       if(FB_OK){
-        const id=await fbPost('barbeiros',{name:'Dono',pass:ADMIN_PASS,isOwner:true,shareWithOwner:true,ts:Date.now()});
+        const id=await fs.add('barbeiros',{name:'Dono',pass:ADMIN_PASS,isOwner:true,shareWithOwner:true,ts:Date.now()});
         await loadBarbers(true);
         owner=loadedBarbers.find(b=>b._key===id);
       } else {
@@ -1836,7 +1842,7 @@ function adjustAdminUIForUser(){
     badge.textContent='👤 '+(currentUser.name||'')+(currentUser.isOwner?' · DONO':'');
   }
 }
-(async function init(){
+async function init(){
   const pass=new URLSearchParams(window.location.search).get('admin');
   if(pass!==null){
     const user=await authenticateAdmin(pass);
@@ -1857,7 +1863,8 @@ function adjustAdminUIForUser(){
   await loadConfig();
   await loadBarbers();
   if(loadedBarbers.length===1){st.barbeiroId=loadedBarbers[0]._key;st.barbeiroName=loadedBarbers[0].name||'';}
-})();
+}
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
