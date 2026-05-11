@@ -402,6 +402,14 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
       <div class="date-strip" id="edit-date-strip" style="margin-bottom:20px"></div>
       <div class="sec-label">Novo horário <span id="edit-tz-hint" style="color:#ddd;font-weight:400;letter-spacing:0;text-transform:none;font-size:10px"></span></div>
       <div class="t-grid" id="edit-t-grid"><p style="grid-column:span 3;color:#ccc;font-size:13px;padding:10px;text-align:center">Selecione uma data primeiro</p></div>
+      <div class="sec-label" id="edit-pay-label" style="display:none;margin-top:20px">Forma de pagamento</div>
+      <div class="pay-grid" id="edit-pay-grid" style="display:none">
+        <button class="pay-btn" data-pay="dinheiro" onclick="setEditPay('dinheiro')"><span class="pay-btn-icon">💵</span><span class="pay-btn-lbl">Dinheiro</span></button>
+        <button class="pay-btn" data-pay="pix" onclick="setEditPay('pix')"><span class="pay-btn-icon">📱</span><span class="pay-btn-lbl">PIX</span></button>
+        <button class="pay-btn" data-pay="debito" onclick="setEditPay('debito')"><span class="pay-btn-icon">💳</span><span class="pay-btn-lbl">Débito</span></button>
+        <button class="pay-btn" data-pay="credito" onclick="setEditPay('credito')"><span class="pay-btn-icon">💳</span><span class="pay-btn-lbl">Crédito</span></button>
+        <button class="pay-btn pay-btn-other" data-pay="outro" onclick="setEditPay('outro')"><span class="pay-btn-icon">❓</span><span class="pay-btn-lbl">Outro / Não informado</span></button>
+      </div>
       <div class="modal-footer">
         <button class="btn btn-close-modal" onclick="closeEdit()">Cancelar</button>
         <button class="btn btn-save" id="btn-save-edit" onclick="saveEdit()" disabled>Salvar →</button>
@@ -747,7 +755,7 @@ async function fbDelete(p){const r=await fetch(`${FIREBASE_URL}/${p}.json`,{meth
 
 async function getTakenSlots(date,barbeiroId){
   if(!FB_OK) return {takenSlots:[],allDay:false};
-  const [bk,bl]=await Promise.all([fbFetch('agendamentos'),fbFetch('bloqueios')]);
+  const [bk,bl]=await Promise.all([fs.fetchAll('agendamentos'),fbFetch('bloqueios')]);
   // Slot é ocupado se for do mesmo barbeiro OU se for legado sem barbeiroId (compat).
   const matchBarber=item=>!barbeiroId||!item.barbeiroId||item.barbeiroId===barbeiroId;
   const booked=bk?Object.values(bk).filter(b=>b&&b.date===date&&b.status!=='noshow'&&b.status!=='cancelled'&&matchBarber(b)).map(b=>b.time):[];
@@ -917,7 +925,7 @@ async function doConfirm(){
   const emailUrl=ownerEmail?`mailto:${ownerEmail}?subject=${encodeURIComponent('Novo Agendamento – '+st.name)}&body=${encodeURIComponent(waMsg.replace(/\*/g,''))}`:'';
   window.open(waUrl,'_blank');
   try{
-    await fbPost('agendamentos',{
+    await fs.add('agendamentos',{
       name:st.name, phone:st.phoneDigits,
       services:its.map(i=>i.name),
       serviceItems:its.map(i=>({name:i.name,price:i.price,time:i.time})),
@@ -1002,7 +1010,7 @@ async function loadBookingsTab(){
   const body=document.getElementById('admin-body');
   body.innerHTML='<div class="loading-row"><span class="spinner"></span> Carregando…</div>';
   await loadBarbers();
-  const data=await fbFetch('agendamentos'),today=toKey(new Date()),tomorrow=tomorrowKey();
+  const data=await fs.fetchAll('agendamentos'),today=toKey(new Date()),tomorrow=tomorrowKey();
   const all=data?Object.entries(data).map(([k,b])=>({...b,_key:k,status:b.status||'pending'})).filter(b=>b&&b.date&&visibleToCurrentUser(b)):[];
   allBookingsCache=all;
   customerHistory=buildCustomerHistory(all);
@@ -1049,6 +1057,15 @@ function renderBookingCard(b,today,tomorrow){
   const phoneFmt = b.phone?fmtPhone(b.phone):'';
   const histSnippet = getCustomerHistorySnippet(b);
 
+  // Quantos dias se passaram desde a data do agendamento (negativo = futuro)
+  // Edição permitida em qualquer pendente OU em confirmados/faltou de até 7 dias atrás.
+  const _bDate = new Date(b.date+'T12:00:00');
+  const _tDate = new Date(today+'T12:00:00');
+  const daysSince = Math.floor((_tDate - _bDate) / 86400000);
+  const editableWindow = daysSince <= 7;
+  const bJson=escapeAttr(JSON.stringify({_key:b._key,name:b.name,services:svcs,date:b.date,time:b.time,total:b.total,status:status,paymentType:b.paymentType||null}));
+  const editBtn = editableWindow ? `<button class="btn-edit" onclick='openEdit(${bJson})'>✏️ Editar</button>` : '';
+
   let reminderBtn='';
   if(isTomorrow&&b.phone&&(status==='pending'||status==='confirmed')){
     const reminderHref=buildReminderLink(b);
@@ -1056,31 +1073,32 @@ function renderBookingCard(b,today,tomorrow){
   }
 
   let foot='';
-  if(status==='pending'&&isPast){
+  if(status==='pending'){
+    // Pendentes (qualquer data): Confirmar/Faltou + Editar + Cancelar
     foot=`<div class="action-row-confirm">
       <button class="btn-confirm" onclick="openConfirmModal('${b._key}',${escapeAttr(JSON.stringify({name:b.name,total:b.total,svcs}))})">✓ Confirmar</button>
       <button class="btn-noshow" onclick="markNoShow('${b._key}')">Faltou</button>
-    </div>`;
-  } else if(status==='confirmed'){
-    const payLbl=PAY_LABELS[b.paymentType]||'❓ Sem pagamento';
-    foot=`<div class="bk-foot">
-      <div><span class="bk-total">R$ ${fmt(b.total||0)}</span> <span class="bk-pay">${payLbl}</span></div>
-      <div class="bk-actions">${reminderBtn}<button class="btn-revert" onclick="revertBooking('${b._key}')">↶ Desfazer</button></div>
-    </div>`;
-  } else if(status==='noshow'){
-    foot=`<div class="bk-foot">
-      <span class="bk-total" style="text-decoration:line-through;color:#999">R$ ${fmt(b.total||0)}</span>
-      <div class="bk-actions"><button class="btn-revert" onclick="revertBooking('${b._key}')">↶ Desfazer</button></div>
-    </div>`;
-  } else {
-    const bJson=escapeAttr(JSON.stringify({_key:b._key,name:b.name,services:svcs,date:b.date,time:b.time,total:b.total}));
-    foot=`<div class="bk-foot">
+    </div>
+    <div class="bk-foot">
       <span class="bk-total">R$ ${fmt(b.total||0)}</span>
       <div class="bk-actions">
         ${reminderBtn}
-        <button class="btn-edit" onclick='openEdit(${bJson})'>✏️ Editar</button>
+        ${editBtn}
         <button class="btn-cancel" onclick="cancelBooking('${b._key}',this)">✕ Cancelar</button>
       </div>
+    </div>`;
+  } else if(status==='confirmed'){
+    // Confirmados: Lembrar (se amanhã) + Editar (se ≤7 dias) + Desfazer
+    const payLbl=PAY_LABELS[b.paymentType]||'❓ Sem pagamento';
+    foot=`<div class="bk-foot">
+      <div><span class="bk-total">R$ ${fmt(b.total||0)}</span> <span class="bk-pay">${payLbl}</span></div>
+      <div class="bk-actions">${reminderBtn}${editBtn}<button class="btn-revert" onclick="revertBooking('${b._key}')">↶ Desfazer</button></div>
+    </div>`;
+  } else if(status==='noshow'){
+    // Faltou: Editar (se ≤7 dias) + Desfazer
+    foot=`<div class="bk-foot">
+      <span class="bk-total" style="text-decoration:line-through;color:#999">R$ ${fmt(b.total||0)}</span>
+      <div class="bk-actions">${editBtn}<button class="btn-revert" onclick="revertBooking('${b._key}')">↶ Desfazer</button></div>
     </div>`;
   }
 
@@ -1121,16 +1139,16 @@ function escapeAttr(s){return s.replace(/'/g,'&apos;').replace(/"/g,'&quot;');}
 async function cancelBooking(key,btn){
   if(!confirm('Cancelar este agendamento?'))return;
   btn.disabled=true;btn.textContent='…';
-  try{await fbPatch(`agendamentos/${key}`,{status:'cancelled'});await loadBookingsTab();}
+  try{await fs.update('agendamentos', key, {status:'cancelled'});await loadBookingsTab();}
   catch(e){alert('Erro.');btn.disabled=false;btn.textContent='✕ Cancelar';}
 }
 async function markNoShow(key){
   if(!confirm('Marcar como NÃO compareceu? O horário ficará livre.'))return;
-  try{await fbPatch(`agendamentos/${key}`,{status:'noshow'});await loadBookingsTab();}catch(e){alert('Erro.');}
+  try{await fs.update('agendamentos', key, {status:'noshow'});await loadBookingsTab();}catch(e){alert('Erro.');}
 }
 async function revertBooking(key){
   if(!confirm('Desfazer e voltar para pendente?'))return;
-  try{await fbPatch(`agendamentos/${key}`,{status:'pending',paymentType:null});await loadBookingsTab();}catch(e){alert('Erro.');}
+  try{await fs.update('agendamentos', key, {status:'pending',paymentType:null});await loadBookingsTab();}catch(e){alert('Erro.');}
 }
 
 // Confirm modal (com pagamento)
@@ -1143,7 +1161,7 @@ function openConfirmModal(key,infoJson){
 function closeConfirmModal(){document.getElementById('confirm-modal').classList.remove('open');adminSt.pendingConfirmKey=null;}
 async function confirmWithPayment(payment){
   const key=adminSt.pendingConfirmKey;if(!key)return;
-  try{await fbPatch(`agendamentos/${key}`,{status:'confirmed',paymentType:payment});closeConfirmModal();await loadBookingsTab();}
+  try{await fs.update('agendamentos', key, {status:'confirmed',paymentType:payment});closeConfirmModal();await loadBookingsTab();}
   catch(e){alert('Erro ao confirmar.');}
 }
 
@@ -1192,7 +1210,7 @@ async function renderBlockGrid(date){
   const area=document.getElementById('block-grid-area');if(!area)return;
   area.innerHTML='<div class="grid-loading"><span class="spinner"></span></div>';
   await loadConfig();
-  const [bk,bl]=await Promise.all([fbFetch('agendamentos'),fbFetch('bloqueios')]);
+  const [bk,bl]=await Promise.all([fs.fetchAll('agendamentos'),fbFetch('bloqueios')]);
   const booked=bk?Object.values(bk).filter(b=>b&&b.date===date&&b.status!=='noshow'&&b.status!=='cancelled'&&visibleToCurrentUser(b)).map(b=>b.time):[];
   const dblocks=bl?Object.entries(bl).map(([k,b])=>({...b,_key:k})).filter(b=>b&&b.date===date&&visibleToCurrentUser(b)):[];
   const ad=dblocks.find(b=>b.allDay),isAll=!!ad;
@@ -1370,15 +1388,28 @@ async function deleteItem(k){if(!confirm('Excluir item?'))return;await fbDelete(
 function openEdit(b){
   if(typeof b==='string')b=JSON.parse(b.replace(/&apos;/g,"'").replace(/&quot;/g,'"'));
   editSt.key=b._key;editSt.booking=b;editSt.newDate=null;editSt.newTime=null;
+  editSt.newPayment=b.paymentType||null;
   document.getElementById('edit-info').innerHTML=`<strong>${b.name}</strong><br>✂️ ${b.services}<br>📅 ${fmtDate(b.date)} às ${b.time}`;
   document.getElementById('btn-save-edit').disabled=true;
   buildDateStrip('edit-date-strip',null,'pickEditDate',30);
   document.getElementById('edit-t-grid').innerHTML='<p style="grid-column:span 3;color:#ccc;font-size:13px;padding:10px;text-align:center">Selecione uma data primeiro</p>';
+  // Mostra editor de forma de pagamento só pra agendamentos confirmados
+  const showPay=b.status==='confirmed';
+  document.getElementById('edit-pay-label').style.display=showPay?'':'none';
+  document.getElementById('edit-pay-grid').style.display=showPay?'grid':'none';
+  if(showPay){
+    document.querySelectorAll('#edit-pay-grid .pay-btn').forEach(btn=>{
+      const isSel=btn.dataset.pay===b.paymentType;
+      btn.style.borderColor=isSel?'#22aa44':'';
+      btn.style.background=isSel?'#f0fbf3':'';
+    });
+  }
   document.getElementById('edit-modal').classList.add('open');
 }
 function closeEdit(){document.getElementById('edit-modal').classList.remove('open');}
-async function pickEditDate(k){
-  editSt.newDate=k;editSt.newTime=null;document.getElementById('btn-save-edit').disabled=true;
+async function pickEditDate(k,preserveTime){
+  editSt.newDate=k;
+  if(!preserveTime){editSt.newTime=null;}
   await loadConfig();
   buildDateStrip('edit-date-strip',k,'pickEditDate',30);
   const g=document.getElementById('edit-t-grid'),hint=document.getElementById('edit-tz-hint');
@@ -1394,12 +1425,46 @@ async function pickEditDate(k){
     h+=tk?`<div class="t-slot taken">${slot}</div>`:`<div class="t-slot${sl?' sel':''}" onclick="pickEditTime('${slot}')">${slot}</div>`;
   }
   g.innerHTML=h;
+  // Re-avalia se o botão Salvar deve estar habilitado
+  refreshSaveEditBtn();
 }
-function pickEditTime(t){editSt.newTime=t;document.getElementById('btn-save-edit').disabled=false;pickEditDate(editSt.newDate);}
+function pickEditTime(t){
+  editSt.newTime=t;
+  pickEditDate(editSt.newDate,true); // re-renderiza grid mantendo seleção
+  refreshSaveEditBtn();
+}
+function setEditPay(pay){
+  editSt.newPayment=pay;
+  document.querySelectorAll('#edit-pay-grid .pay-btn').forEach(btn=>{
+    const isSel=btn.dataset.pay===pay;
+    btn.style.borderColor=isSel?'#22aa44':'';
+    btn.style.background=isSel?'#f0fbf3':'';
+  });
+  refreshSaveEditBtn();
+}
+function refreshSaveEditBtn(){
+  // Habilita Salvar se houver mudança válida: data+hora novas OU pagamento diferente do atual
+  const dtChanged=!!(editSt.newDate&&editSt.newTime);
+  const isConfirmed=editSt.booking?.status==='confirmed';
+  const payChanged=isConfirmed&&editSt.newPayment&&editSt.newPayment!==(editSt.booking?.paymentType||null);
+  document.getElementById('btn-save-edit').disabled=!(dtChanged||payChanged);
+}
 async function saveEdit(){
-  const b=document.getElementById('btn-save-edit');b.disabled=true;b.textContent='Salvando…';
-  try{await fbPatch(`agendamentos/${editSt.key}`,{date:editSt.newDate,time:editSt.newTime});closeEdit();await loadBookingsTab();}catch(e){alert('Erro.');}
-  b.disabled=false;b.textContent='Salvar →';
+  const btn=document.getElementById('btn-save-edit');
+  btn.disabled=true;btn.textContent='Salvando…';
+  try{
+    const data={};
+    if(editSt.newDate&&editSt.newTime){data.date=editSt.newDate;data.time=editSt.newTime;}
+    const isConfirmed=editSt.booking?.status==='confirmed';
+    if(isConfirmed&&editSt.newPayment&&editSt.newPayment!==(editSt.booking?.paymentType||null)){
+      data.paymentType=editSt.newPayment;
+    }
+    if(Object.keys(data).length===0){alert('Nenhuma alteração para salvar.');btn.disabled=false;btn.textContent='Salvar →';return;}
+    await fs.update('agendamentos',editSt.key,data);
+    closeEdit();
+    await loadBookingsTab();
+  }catch(e){alert('Erro.');}
+  btn.disabled=false;btn.textContent='Salvar →';
 }
 
 // ── ADMIN: Barbeiros (owner only) ────────────────────────────
@@ -1574,7 +1639,7 @@ async function loadAnalyticsTab() {
   }
   
   await loadBarbers();
-  const data = await fbFetch('agendamentos');
+  const data = await fs.fetchAll('agendamentos');
   const all = data ? Object.entries(data).map(([k, b]) => ({ ...b, _key: k, status: b.status || 'pending' })).filter(b => b && b.date && visibleToCurrentUser(b)) : [];
   renderAnalytics(all);
 }
