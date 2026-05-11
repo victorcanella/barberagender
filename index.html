@@ -1333,7 +1333,7 @@ async function loadCardapioTab(){
 }
 function openCatModal(key=null,name=''){catSt.key=key;document.getElementById('cat-modal-title').textContent=key?'Renomear':'Nova Categoria';document.getElementById('cat-name-inp').value=name;document.getElementById('cat-modal').classList.add('open');}
 function closeCatModal(){document.getElementById('cat-modal').classList.remove('open');}
-async function saveCat(){const n=document.getElementById('cat-name-inp').value.trim();if(!n){alert('Digite o nome.');return;}if(catSt.key)await fbPatch(`categorias/${catSt.key}`,{name:n});else await fbPost('categorias',{name:n,ts:Date.now()});closeCatModal();await refreshCurrentTab();}
+async function saveCat(){const n=document.getElementById('cat-name-inp').value.trim();if(!n){alert('Digite o nome.');return;}if(catSt.key)await fs.update('categorias', catSt.key, {name: n});else await fs.add('categorias',{name: n, ts: Date.now()});closeCatModal();await refreshCurrentTab();}
 async function deleteCat(key,n){const m=n>0?`Excluir esta categoria e seus ${n} item(s)?`:'Excluir esta categoria?';if(!confirm(m))return;const id=await fbFetch('itens');if(id){const td=Object.entries(id).filter(([,v])=>v.catKey===key);await Promise.all(td.map(([k])=>fbDelete(`itens/${k}`)));}await fbDelete(`categorias/${key}`);await refreshCurrentTab();}
 async function openItemModal(key,catKey){
   itemSt.key=key;itemSt.catKey=catKey;
