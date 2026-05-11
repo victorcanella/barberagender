@@ -531,6 +531,57 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
   </div>
 
 </div>
+
+<!-- ═════ Firebase Firestore SDK (nova arquitetura, ainda em migração) ═════ -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+
+// ========== COLE A SUA CONFIG DO PROJETO NOVO AQUI ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyAWnLSVSGuIoMZUs5mBqECJ-2BVmbNqp7c",
+  authDomain: "barber-agender-saas.firebaseapp.com",
+  projectId: "barber-agender-saas",
+  storageBucket: "barber-agender-saas.firebasestorage.app",
+  messagingSenderId: "346367300512",
+  appId: "1:346367300512:web:22bef8a4a4b81076234ac5"
+};
+
+// ============================================================
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Por enquanto, o shopId é fixo. Quando colocarmos login, virá do usuário autenticado.
+const SHOP_ID = 'temporario-001';
+
+// Helpers expostos ao resto do código via window.fs
+window.fs = {
+  // Lê todos os documentos de uma subcoleção do shop atual.
+  // Retorna formato { id1: {...}, id2: {...} } pra ficar parecido com RTDB.
+  async fetchAll(subPath) {
+    const ref = collection(db, `shops/${SHOP_ID}/${subPath}`);
+    const snap = await getDocs(ref);
+    const out = {};
+    snap.forEach(d => { out[d.id] = d.data(); });
+    return out;
+  },
+  async add(subPath, data) {
+    const ref = collection(db, `shops/${SHOP_ID}/${subPath}`);
+    const docRef = await addDoc(ref, data);
+    return docRef.id;
+  },
+  async update(subPath, id, data) {
+    await updateDoc(doc(db, `shops/${SHOP_ID}/${subPath}/${id}`), data);
+  },
+  async remove(subPath, id) {
+    await deleteDoc(doc(db, `shops/${SHOP_ID}/${subPath}/${id}`));
+  }
+};
+
+console.log('🔥 Firestore SDK carregado. shopId atual:', SHOP_ID);
+</script>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 const FIREBASE_URL = 'https://barbearia-a2dbd-default-rtdb.firebaseio.com/';
@@ -766,7 +817,7 @@ function reqNotif(){if('Notification' in window)Notification.requestPermission()
 async function buildSvcs(){
   document.getElementById('cardapio-container').innerHTML='<div class="loading-row"><span class="spinner"></span> Carregando…</div>';
   if(FB_OK){
-    const [cd,id]=await Promise.all([fbFetch('categorias'),fbFetch('itens')]);
+    const [cd,id]=await Promise.all([fs.fetchAll('categorias'),fbFetch('itens')]);
     loadedCats=cd?Object.entries(cd).map(([k,v])=>({...v,_key:k})).sort((a,b)=>a.ts-b.ts):[];
     loadedItems=id?Object.entries(id).map(([k,v])=>({...v,_key:k})):[];
   } else {loadedCats=[...FALLBACK_CATS];loadedItems=[...FALLBACK_ITEMS];}
@@ -1244,14 +1295,14 @@ async function bulkBlockHolidays(){
 async function loadCardapioTab(){
   const body=document.getElementById('admin-body');
   body.innerHTML='<div class="loading-row"><span class="spinner"></span> Carregando…</div>';
-  const ec=await fbFetch('categorias');
+  const ec=await fs.fetchAll('categorias');
   if(!ec||Object.keys(ec).length===0){
     for(const {catName,items} of DEFAULT_SEED){
       const ck=await fbPost('categorias',{name:catName,ts:Date.now()});
       for(const it of items)await fbPost('itens',{...it,catKey:ck,ts:Date.now()});
     }
   }
-  const [cd,id]=await Promise.all([fbFetch('categorias'),fbFetch('itens')]);
+  const [cd,id]=await Promise.all([fs.fetchAll('categorias'),fbFetch('itens')]);
   const cats=cd?Object.entries(cd).map(([k,v])=>({...v,_key:k})).sort((a,b)=>a.ts-b.ts):[];
   const all=id?Object.entries(id).map(([k,v])=>({...v,_key:k})):[];
   let h=`<button class="btn-add-cat" onclick="openCatModal()">＋ Nova Categoria</button>`;
@@ -1287,7 +1338,7 @@ async function deleteCat(key,n){const m=n>0?`Excluir esta categoria e seus ${n} 
 async function openItemModal(key,catKey){
   itemSt.key=key;itemSt.catKey=catKey;
   document.getElementById('item-modal-title').textContent=key?'Editar Item':'Novo Item';
-  const cd=await fbFetch('categorias');
+  const cd=await fs.fetchAll('categorias');
   const cs=cd?Object.entries(cd).map(([k,v])=>({...v,_key:k})).sort((a,b)=>a.ts-b.ts):[];
   document.getElementById('item-cat-sel').innerHTML=cs.map(c=>`<option value="${c._key}" ${c._key===catKey?'selected':''}>${c.name}</option>`).join('');
   if(key){const i=await fbFetch(`itens/${key}`);document.getElementById('item-icon-inp').value=i.icon||'';document.getElementById('item-name-inp').value=i.name||'';document.getElementById('item-price-inp').value=i.price||'';document.getElementById('item-time-inp').value=i.time||'';document.getElementById('item-cat-sel').value=i.catKey||catKey;}
@@ -1508,7 +1559,7 @@ async function loadAnalyticsTab() {
   
   // Carrega cardápio atual para fallback (apenas para agendamentos antigos sem detalhes)
   if (FB_OK) {
-    const [cd, id] = await Promise.all([fbFetch('categorias'), fbFetch('itens')]);
+    const [cd, id] = await Promise.all([fs.fetchAll('categorias'), fbFetch('itens')]);
     loadedCats = cd ? Object.entries(cd).map(([k, v]) => ({ ...v, _key: k })).sort((a, b) => a.ts - b.ts) : [];
     loadedItems = id ? Object.entries(id).map(([k, v]) => ({ ...v, _key: k })) : [];
   } else {
