@@ -266,8 +266,9 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 
   <!-- S1 WELCOME -->
   <div id="s1" class="screen active">
-    <div class="logo-hdr">
+    <div class="logo-hdr" style="position:relative">
       <div class="shop-name" id="shop-name-big">Barbearia</div>
+      <a id="link-owner-login" onclick="goToLogin()" style="position:absolute;top:14px;right:14px;color:var(--gold);font-size:11px;cursor:pointer;font-weight:600;text-decoration:none;letter-spacing:.5px">SOU DA BARBEARIA →</a>
     </div>
     <div class="body" style="display:flex;flex-direction:column;gap:18px">
       <div id="cfg-warn" class="cfg-warn">⚠️ <strong>Firebase não configurado.</strong> O bloqueio de horários não funcionará.</div>
@@ -277,6 +278,50 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
       <div style="flex:1"></div>
     </div>
     <div class="footer"><button id="btn1" class="btn btn-blk" onclick="nav('s2',1)" disabled>Continuar →</button></div>
+  </div>
+
+  <!-- S-LOGIN -->
+  <div id="s-login" class="screen">
+    <div class="topbar"><button class="back-btn" onclick="goToWelcome()">←</button><span class="topbar-title">Entrar</span></div>
+    <div class="body" style="display:flex;flex-direction:column;gap:14px;padding-top:30px">
+      <div><div class="h1">Bem-vindo de volta 👋</div><div class="sub">Acesse o painel da sua barbearia.</div></div>
+      <div><label class="inp-label">Email</label><input id="login-email" class="inp" type="email" placeholder="dono@email.com" autocomplete="email"></div>
+      <div><label class="inp-label">Senha</label><input id="login-pass" class="inp" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <p id="login-err" style="color:#c33;font-size:13px;display:none;margin:0"></p>
+      <button id="btn-login" class="btn btn-blk" onclick="doLogin()">Entrar →</button>
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0;color:#bbb;font-size:12px"><div style="flex:1;height:1px;background:#eee"></div>ou<div style="flex:1;height:1px;background:#eee"></div></div>
+      <button id="btn-login-google" class="btn" onclick="doSignInGoogle()" style="background:#fff;border:1px solid #ddd;color:#444;padding:14px;border-radius:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">🌐 Entrar com Google</button>
+      <p style="text-align:center;font-size:13px;color:#666;margin-top:10px">Não tem conta? <a onclick="goToSignup()" style="color:var(--gold-deep);cursor:pointer;font-weight:600">Cadastre-se</a></p>
+    </div>
+  </div>
+
+  <!-- S-SIGNUP -->
+  <div id="s-signup" class="screen">
+    <div class="topbar"><button class="back-btn" onclick="goToWelcome()">←</button><span class="topbar-title">Criar conta</span></div>
+    <div class="body" style="display:flex;flex-direction:column;gap:12px;padding-top:24px">
+      <div><div class="h1">Crie sua barbearia 💈</div><div class="sub">Comece em 1 minuto, sem cartão.</div></div>
+      <div><label class="inp-label">Nome da barbearia</label><input id="signup-shopname" class="inp" type="text" placeholder="Ex: Barbearia do João"></div>
+      <div><label class="inp-label">WhatsApp do dono</label><input id="signup-whatsapp" class="inp" type="tel" placeholder="(00) 00000-0000" oninput="onBarberPhoneInp(this)"></div>
+      <div><label class="inp-label">Email</label><input id="signup-email" class="inp" type="email" placeholder="seuemail@email.com" autocomplete="email"></div>
+      <div><label class="inp-label">Senha (mín. 6 caracteres)</label><input id="signup-pass" class="inp" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+      <p id="signup-err" style="color:#c33;font-size:13px;display:none;margin:0"></p>
+      <button id="btn-signup" class="btn btn-blk" onclick="doSignup()">Criar conta →</button>
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0;color:#bbb;font-size:12px"><div style="flex:1;height:1px;background:#eee"></div>ou<div style="flex:1;height:1px;background:#eee"></div></div>
+      <button id="btn-signup-google" class="btn" onclick="doSignInGoogle()" style="background:#fff;border:1px solid #ddd;color:#444;padding:14px;border-radius:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">🌐 Continuar com Google</button>
+      <p style="text-align:center;font-size:13px;color:#666;margin-top:8px">Já tem conta? <a onclick="goToLogin()" style="color:var(--gold-deep);cursor:pointer;font-weight:600">Entrar</a></p>
+    </div>
+  </div>
+
+  <!-- S-GOOGLE-FINISH: completar cadastro de quem entrou via Google sem ter shop -->
+  <div id="s-google-finish" class="screen">
+    <div class="topbar"><button class="back-btn" onclick="doLogout()">←</button><span class="topbar-title">Quase lá</span></div>
+    <div class="body" style="display:flex;flex-direction:column;gap:14px;padding-top:30px">
+      <div><div class="h1">Crie sua barbearia 💈</div><div class="sub">Falta só o nome e o WhatsApp.</div></div>
+      <div><label class="inp-label">Nome da barbearia</label><input id="gfin-shopname" class="inp" type="text" placeholder="Ex: Barbearia do João"></div>
+      <div><label class="inp-label">WhatsApp do dono</label><input id="gfin-whatsapp" class="inp" type="tel" placeholder="(00) 00000-0000" oninput="onBarberPhoneInp(this)"></div>
+      <p id="gfin-err" style="color:#c33;font-size:13px;display:none;margin:0"></p>
+      <button id="btn-gfin" class="btn btn-blk" onclick="doFinishGoogleSignup()">Finalizar cadastro →</button>
+    </div>
   </div>
 
   <!-- S2 NOTIFICAÇÕES -->
@@ -376,7 +421,10 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
     </div>
     <div class="admin-bar">
       <span class="admin-badge">🔐 PAINEL DO DONO</span>
-      <button class="admin-refresh" onclick="reloadAdmin()">↻ Atualizar</button>
+      <div style="display:flex;gap:6px">
+        <button class="admin-refresh" onclick="reloadAdmin()">↻ Atualizar</button>
+        <button id="btn-admin-logout" class="admin-refresh" onclick="doLogout()" style="display:none">Sair</button>
+      </div>
     </div>
     <div class="admin-tabs">
       <button class="atab active" id="tab-bk" onclick="switchTab('bookings')">📋 Agenda</button>
@@ -465,9 +513,21 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
       <label class="inp-label" style="margin-top:14px">WhatsApp do profissional</label>
       <input id="barber-phone-inp" class="inp" type="tel" placeholder="(00) 00000-0000" inputmode="tel" oninput="onBarberPhoneInp(this)">
       <div class="sub" style="font-size:11px;margin-top:4px">Receberá as confirmações de agendamento deste profissional.</div>
-      <label class="inp-label" style="margin-top:14px">Senha de acesso</label>
-      <input id="barber-pass-inp" class="inp" type="text" placeholder="Mín. 4 caracteres" autocomplete="new-password">
-      <div class="sub" style="font-size:11px;margin-top:4px">Esta senha será usada por <em>?admin=SENHA</em> no link.</div>
+      <label class="inp-label" style="margin-top:14px">Foto (opcional)</label>
+      <div style="display:flex;align-items:center;gap:12px;background:#f8f8f8;padding:10px;border-radius:10px">
+        <img id="barber-photo-preview" src="" alt="" style="width:60px;height:60px;border-radius:50%;object-fit:cover;background:#e8e8e8;display:none">
+        <div id="barber-photo-placeholder" style="width:60px;height:60px;border-radius:50%;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:24px">💈</div>
+        <div style="flex:1">
+          <input id="barber-photo-inp" type="file" accept="image/jpeg,image/png" onchange="onBarberPhotoChange(this)" style="display:none">
+          <button type="button" class="btn" onclick="document.getElementById('barber-photo-inp').click()" style="background:#fff;border:1px solid #ddd;color:#444;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600">Escolher foto</button>
+          <div id="barber-photo-info" class="sub" style="font-size:10px;margin-top:4px">JPEG ou PNG. Compressão automática.</div>
+        </div>
+      </div>
+      <div id="barber-pass-wrap">
+        <label class="inp-label" style="margin-top:14px">Senha de acesso</label>
+        <input id="barber-pass-inp" class="inp" type="text" placeholder="Mín. 4 caracteres" autocomplete="new-password">
+        <div class="sub" style="font-size:11px;margin-top:4px">Este barbeiro acessará o painel via link com esta senha.</div>
+      </div>
       <div id="barber-share-row" style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;background:#f8f8f8;padding:12px 14px;border-radius:10px;gap:12px">
         <div><div style="font-size:13px;font-weight:700;color:#111">Compartilhar dados com o dono</div><div style="font-size:11px;color:#999;margin-top:2px">O dono pode ver agendamentos e relatórios deste barbeiro</div></div>
         <input type="checkbox" id="barber-share-chk" checked style="transform:scale(1.4);accent-color:var(--gold-deep)">
@@ -544,6 +604,8 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
 import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updatePassword as fbUpdatePassword } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js';
 
 // ========== COLE A SUA CONFIG DO PROJETO NOVO AQUI ==========
 const firebaseConfig = {
@@ -559,9 +621,36 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const storage = getStorage(app);
+const googleProvider = new GoogleAuthProvider();
 
-// Por enquanto, o shopId é fixo. Quando colocarmos login, virá do usuário autenticado.
-const SHOP_ID = 'temporario-001';
+// SHOP_ID começa nulo. É definido em 3 caminhos:
+//   1) Compat antigo: ?admin=<senha> → SHOP_ID = 'temporario-001'
+//   2) Auth Firebase: após login, carrega de /users/{uid}.shopId
+//   3) Customer URL: ?shop=<id> (Semana 10)
+let SHOP_ID = null;
+
+// Função utilitária: comprime uma imagem antes do upload pro Storage.
+// Reduz dimensão pra maxSize px no maior lado, e salva como JPEG com a qualidade indicada.
+async function compressImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > height && width > maxSize) { height = (height/width)*maxSize; width = maxSize; }
+      else if (height > maxSize) { width = (width/height)*maxSize; height = maxSize; }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Falha ao comprimir')), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Imagem inválida')); };
+    img.src = url;
+  });
+}
 
 // Helpers expostos ao resto do código via window.fs
 window.fs = {
@@ -601,6 +690,108 @@ window.fs = {
   // Salva (cria ou atualiza) o objeto de configuração no shop. Faz merge — não apaga outros campos.
   async saveConfig(data) {
     await setDoc(doc(db, `shops/${SHOP_ID}`), { config: data }, { merge: true });
+  },
+
+  // ════ AUTH ════
+  // Cadastro com email/senha: cria usuário, shop, doc /users/{uid}, e barbeiro "Dono"
+  async signup(email, password, shopName, whatsapp) {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    return await this._bootstrapShop(cred.user, shopName, whatsapp);
+  },
+  async login(email, password) {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    return cred.user;
+  },
+  // Google: pode ser login OU signup. Se já tiver shop, faz login. Se não, pede dados extras.
+  async signInWithGoogle() {
+    const cred = await signInWithPopup(auth, googleProvider);
+    const userSnap = await getDoc(doc(db, `users/${cred.user.uid}`));
+    return { user: cred.user, hasShop: userSnap.exists(), shopId: userSnap.exists() ? userSnap.data().shopId : null };
+  },
+  async finalizeGoogleSignup(user, shopName, whatsapp) {
+    return await this._bootstrapShop(user, shopName, whatsapp);
+  },
+  async logout() {
+    await signOut(auth);
+    SHOP_ID = null;
+  },
+  async changePassword(newPassword) {
+    if (!auth.currentUser) throw new Error('Não autenticado.');
+    await fbUpdatePassword(auth.currentUser, newPassword);
+  },
+  // Helper interno: cria shop, user doc e dono barbeiro pra um usuário Firebase Auth recém-criado
+  async _bootstrapShop(user, shopName, whatsapp) {
+    const phone = (whatsapp || '').replace(/\D/g, '');
+    const shopRef = await addDoc(collection(db, 'shops'), {
+      name: shopName,
+      ownerEmail: user.email || '',
+      ownerUid: user.uid,
+      createdAt: new Date(),
+      config: { shopName: shopName, ownerEmail: user.email || '', ownerWhatsapp: phone }
+    });
+    const shopId = shopRef.id;
+    await setDoc(doc(db, `users/${user.uid}`), {
+      email: user.email || '',
+      shopId: shopId,
+      role: 'owner',
+      createdAt: new Date()
+    });
+    // Cria barbeiro "Dono" — sem senha (dono entra via Firebase Auth, não via ?admin=)
+    await addDoc(collection(db, `shops/${shopId}/barbeiros`), {
+      name: user.displayName || 'Dono',
+      isOwner: true,
+      phone: phone,
+      subtitle: 'Profissional principal',
+      shareWithOwner: true,
+      ts: Date.now()
+    });
+    // Semeia cardápio padrão (categorias + itens) pra o cliente ter o que escolher
+    const seed = window.DEFAULT_SEED || [];
+    for (const { catName, items } of seed) {
+      const catRef = await addDoc(collection(db, `shops/${shopId}/categorias`), {
+        name: catName,
+        ts: Date.now()
+      });
+      for (const it of items) {
+        await addDoc(collection(db, `shops/${shopId}/itens`), {
+          ...it,
+          catKey: catRef.id,
+          ts: Date.now()
+        });
+      }
+    }
+    return { shopId, uid: user.uid };
+  },
+  // Registra callback que dispara quando o estado de autenticação muda (login/logout/refresh)
+  onAuthReady(callback) {
+    return onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const snap = await getDoc(doc(db, `users/${user.uid}`));
+        if (snap.exists()) {
+          SHOP_ID = snap.data().shopId;
+          callback({ user, shopId: SHOP_ID, userData: snap.data() });
+        } else {
+          // Usuário autenticado mas sem shop (ex.: Google login que ainda não completou cadastro)
+          callback({ user, shopId: null, userData: null });
+        }
+      } else {
+        callback({ user: null, shopId: null, userData: null });
+      }
+    });
+  },
+  setShopId(id) { SHOP_ID = id; },
+  getShopId() { return SHOP_ID; },
+  getCurrentAuthUser() { return auth.currentUser; },
+
+  // ════ STORAGE ════
+  // Upload de foto de barbeiro com compressão automática (400px no maior lado, 80% qualidade JPEG)
+  async uploadBarberPhoto(barberId, file) {
+    if (!SHOP_ID) throw new Error('Sem shop ativo');
+    const compressed = await compressImage(file, 400, 0.8);
+    const path = `shops/${SHOP_ID}/barbeiros/${barberId}.jpg`;
+    const ref = storageRef(storage, path);
+    await uploadBytes(ref, compressed);
+    return await getDownloadURL(ref);
   }
 };
 
@@ -630,6 +821,8 @@ const DEFAULT_SEED = [
     {name:'Óleo de Barba',price:30,time:5,icon:'💧'},
   ]}
 ];
+// Expõe pra que o módulo (window.fs) consiga semear cardápio padrão em shops novos
+window.DEFAULT_SEED = DEFAULT_SEED;
 const FALLBACK_CATS  = [{_key:'s',name:'Serviços',ts:0},{_key:'p',name:'Produtos',ts:1}];
 const FALLBACK_ITEMS = [
   {_key:'f1',name:'Corte',price:35,time:35,icon:'✂️',catKey:'s'},
@@ -805,8 +998,11 @@ async function buildBarberPick(){
   loadedBarbers.forEach(b=>{
     const sel=st.barbeiroId===b._key;
     const role=(b.subtitle&&b.subtitle.trim())||(b.isOwner?'Profissional principal':'Barbeiro');
+    const photoIcon=b.photoUrl
+      ? `<div class="svc-icon-box" style="background:url('${b.photoUrl}') center/cover;font-size:0"></div>`
+      : `<div class="svc-icon-box">💈</div>`;
     h+=`<div class="svc-card${sel?' sel':''}" onclick="pickBarber('${b._key}')">
-      <div class="svc-icon-box">💈</div>
+      ${photoIcon}
       <div class="svc-info"><div class="svc-name">${b.name||'(sem nome)'}</div><div class="svc-time">${role}</div></div>
       <div class="check">${sel?'✓':''}</div>
     </div>`;
@@ -1497,16 +1693,30 @@ async function loadBarbersTab(){
     loadedBarbers.forEach(b=>{
       const ownerBadge=b.isOwner?'<span class="bk-status confirmed" style="margin-left:6px">DONO</span>':'';
       const privBadge=!b.isOwner&&b.shareWithOwner===false?'<span class="bk-status noshow" style="margin-left:6px">PRIVADO</span>':'';
-      const linkUrl=`?admin=${encodeURIComponent(b.pass||'')}`;
       const showDelete=!b.isOwner;
       const phoneInfo=b.phone?`<div class="barber-pass">📱 ${fmtPhone(b.phone)}</div>`:'<div class="barber-pass" style="color:#c33">📱 sem telefone — confirmações irão para o dono</div>';
       const subInfo=b.subtitle?`<div class="barber-pass" style="font-style:italic">“${b.subtitle}”</div>`:'';
+      const photoThumb=b.photoUrl
+        ? `<img src="${b.photoUrl}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+        : `<div style="width:44px;height:44px;border-radius:50%;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💈</div>`;
+      // Dono entra via Firebase Auth — não tem link de senha pra mostrar
+      let accessInfo='';
+      if(b.isOwner){
+        accessInfo='<div class="barber-pass" style="color:#888;font-size:11px">Acesso via email/senha do app</div>';
+      } else if(b.pass){
+        const shopId=fs.getShopId()||'';
+        const fullLink=`${location.origin}${location.pathname}?shop=${encodeURIComponent(shopId)}&admin=${encodeURIComponent(b.pass)}`;
+        accessInfo=`<div class="barber-pass">🔒 senha: <strong>${b.pass}</strong> · <a href="${fullLink}" target="_blank" style="color:var(--gold-deep);text-decoration:none">link</a> · <a onclick="copyBarberLink('${b._key}',event)" style="color:var(--gold-deep);text-decoration:none;cursor:pointer">copiar</a></div>`;
+      } else {
+        accessInfo='<div class="barber-pass" style="color:#c33;font-size:11px">⚠️ sem senha — não consegue acessar</div>';
+      }
       html+=`<div class="barber-card">
+        ${photoThumb}
         <div class="barber-info">
-          <div class="barber-name">💈 ${b.name||'(sem nome)'} ${ownerBadge}${privBadge}</div>
+          <div class="barber-name">${b.name||'(sem nome)'} ${ownerBadge}${privBadge}</div>
           ${subInfo}
           ${phoneInfo}
-          <div class="barber-pass">🔒 senha: <strong>${b.pass||'—'}</strong> · <a href="${linkUrl}" style="color:var(--gold-deep);text-decoration:none">link</a></div>
+          ${accessInfo}
         </div>
         <div class="bk-actions">
           <button class="btn-edit" onclick="openBarberModal('${b._key}')">✏️</button>
@@ -1519,6 +1729,7 @@ async function loadBarbersTab(){
 }
 function openBarberModal(key){
   barberSt.key=key||null;
+  barberSt.pendingPhotoFile=null; // arquivo de foto selecionado, ainda não enviado
   const b=key?loadedBarbers.find(x=>x._key===key):null;
   const isOwnerEdit=b&&b.isOwner;
   document.getElementById('barber-modal-title').textContent=key?(isOwnerEdit?'Editar dono':'Editar barbeiro'):'Novo barbeiro';
@@ -1528,28 +1739,62 @@ function openBarberModal(key){
   document.getElementById('barber-pass-inp').value=b?(b.pass||''):'';
   document.getElementById('barber-share-chk').checked=b?(b.shareWithOwner!==false):true;
   document.getElementById('barber-share-row').style.display=isOwnerEdit?'none':'flex';
+  // Dono não tem senha de barbeiro (entra via Firebase Auth) — esconde o campo
+  document.getElementById('barber-pass-wrap').style.display=isOwnerEdit?'none':'block';
+  // Foto: mostra a atual se existir
+  const preview=document.getElementById('barber-photo-preview');
+  const placeholder=document.getElementById('barber-photo-placeholder');
+  if(b&&b.photoUrl){preview.src=b.photoUrl;preview.style.display='block';placeholder.style.display='none';}
+  else{preview.src='';preview.style.display='none';placeholder.style.display='flex';}
+  document.getElementById('barber-photo-inp').value='';
+  document.getElementById('barber-photo-info').textContent='JPEG ou PNG. Compressão automática.';
   document.getElementById('barber-modal').classList.add('open');
 }
 function closeBarberModal(){document.getElementById('barber-modal').classList.remove('open');}
+function onBarberPhotoChange(input){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+  if(!/^image\/(jpeg|png)$/.test(file.type)){alert('Use uma imagem JPEG ou PNG.');input.value='';return;}
+  if(file.size>5*1024*1024){alert('Imagem muito grande (máx. 5 MB antes da compressão).');input.value='';return;}
+  barberSt.pendingPhotoFile=file;
+  // Preview local antes do upload
+  const url=URL.createObjectURL(file);
+  const preview=document.getElementById('barber-photo-preview');
+  const placeholder=document.getElementById('barber-photo-placeholder');
+  preview.src=url;preview.style.display='block';placeholder.style.display='none';
+  document.getElementById('barber-photo-info').textContent='Será enviada ao salvar.';
+}
 async function saveBarber(){
   const name=document.getElementById('barber-name-inp').value.trim();
   const subtitle=document.getElementById('barber-subtitle-inp').value.trim();
   const phone=document.getElementById('barber-phone-inp').value.replace(/\D/g,'');
   const pass=document.getElementById('barber-pass-inp').value.trim();
   const share=document.getElementById('barber-share-chk').checked;
+  const existing=barberSt.key?loadedBarbers.find(x=>x._key===barberSt.key):null;
+  const isOwnerEdit=existing&&existing.isOwner;
   if(!name||name.length<2){alert('Digite um nome (mín. 2 letras).');return;}
   if(phone&&phone.length<10){alert('Telefone inválido (use DDD + número).');return;}
-  if(!pass||pass.length<4){alert('Senha deve ter pelo menos 4 caracteres.');return;}
-  const dup=loadedBarbers.find(x=>x._key!==barberSt.key&&x.pass===pass);
-  if(dup){alert(`Senha já em uso por "${dup.name}". Escolha outra.`);return;}
-  if(barberSt.key){
-    const editing=loadedBarbers.find(x=>x._key===barberSt.key);
-    const data={name,pass,subtitle,phone};
-    if(!editing.isOwner)data.shareWithOwner=share;
-    await fs.update('barbeiros', barberSt.key, data);
-    if(currentUser&&currentUser.id===barberSt.key){currentUser.name=name;adjustAdminUIForUser();}
+  // Dono não precisa de senha (entra via Firebase Auth). Demais barbeiros precisam.
+  if(!isOwnerEdit){
+    if(!pass||pass.length<4){alert('Senha deve ter pelo menos 4 caracteres.');return;}
+    const dup=loadedBarbers.find(x=>x._key!==barberSt.key&&x.pass===pass);
+    if(dup){alert(`Senha já em uso por "${dup.name}". Escolha outra.`);return;}
+  }
+  let barberId=barberSt.key;
+  if(barberId){
+    const data=isOwnerEdit?{name,subtitle,phone}:{name,pass,subtitle,phone,shareWithOwner:share};
+    await fs.update('barbeiros', barberId, data);
+    if(currentUser&&currentUser.id===barberId){currentUser.name=name;adjustAdminUIForUser();}
   } else {
-    await await fs.add('barbeiros',{name,pass,subtitle,phone,isOwner:false,shareWithOwner:share,ts:Date.now()});
+    barberId=await fs.add('barbeiros',{name,pass,subtitle,phone,isOwner:false,shareWithOwner:share,ts:Date.now()});
+  }
+  // Upload da foto, se houver
+  if(barberSt.pendingPhotoFile){
+    try{
+      document.getElementById('barber-photo-info').textContent='Enviando foto…';
+      const photoUrl=await fs.uploadBarberPhoto(barberId,barberSt.pendingPhotoFile);
+      await fs.update('barbeiros', barberId, {photoUrl});
+    }catch(e){alert('Foto não pôde ser enviada: '+(e.message||e));}
   }
   closeBarberModal();
   await loadBarbersTab();
@@ -1599,7 +1844,46 @@ async function loadConfigTab(){
     <div class="sub" style="margin:6px 0 22px;font-size:11px">Toque para alternar — em destaque = aberto, riscado = fechado.</div>
     <button class="btn btn-blk" onclick="saveConfigForm(this)">💾 Salvar configuração</button>
     <p id="cfg-msg" style="margin-top:12px;font-size:12px;text-align:center;color:#22aa44;display:none">✓ Salvo</p>
+
+    <div class="h1" style="font-size:18px;margin:28px 0 14px">🔗 Link para clientes</div>
+    <div class="sub" style="margin-bottom:14px">Divulgue este link para que seus clientes façam agendamentos.</div>
+    <div style="background:#f8f8f8;padding:12px;border-radius:10px;font-family:monospace;font-size:11px;word-break:break-all;color:#555;border:1px solid #ebebeb" id="customer-link-display">${location.origin}${location.pathname}?shop=${fs.getShopId()||''}</div>
+    <button class="btn" onclick="copyCustomerLink()" style="background:#f0f0f0;color:#111;border:1px solid #ddd;padding:12px;border-radius:13px;font-weight:600;width:100%;margin-top:8px">📋 Copiar link</button>
+
+    <div class="h1" style="font-size:18px;margin:28px 0 14px">🔐 Conta</div>
+    <div class="sub" style="margin-bottom:14px">Gerencie acesso e segurança da conta do dono.</div>
+    <button class="btn" onclick="doChangePassword()" style="background:#f0f0f0;color:#111;border:1px solid #ddd;padding:14px;border-radius:13px;font-weight:600;width:100%">🔑 Mudar senha</button>
+    <button class="btn" onclick="doLogout()" style="background:#fff;color:#c33;border:1px solid #f0c0c0;padding:14px;border-radius:13px;font-weight:600;width:100%;margin-top:10px">🚪 Sair</button>
   `;
+}
+async function copyCustomerLink(){
+  const txt=document.getElementById('customer-link-display').textContent.trim();
+  try{
+    await navigator.clipboard.writeText(txt);
+    alert('Link copiado! Cole onde quiser divulgar.');
+  }catch(e){
+    // Fallback se clipboard API não funcionar
+    const ta=document.createElement('textarea');
+    ta.value=txt;document.body.appendChild(ta);
+    ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    alert('Link copiado.');
+  }
+}
+async function copyBarberLink(key,evt){
+  if(evt&&evt.preventDefault)evt.preventDefault();
+  const b=loadedBarbers.find(x=>x._key===key);
+  if(!b||!b.pass){alert('Barbeiro sem senha.');return;}
+  const shopId=fs.getShopId()||'';
+  const link=`${location.origin}${location.pathname}?shop=${encodeURIComponent(shopId)}&admin=${encodeURIComponent(b.pass)}`;
+  try{
+    await navigator.clipboard.writeText(link);
+    alert('Link copiado! Envie pro '+(b.name||'barbeiro')+'.');
+  }catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=link;document.body.appendChild(ta);
+    ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    alert('Link copiado.');
+  }
 }
 function toggleClosedDay(d){
   const arr=appCfg.closedDays||[];
@@ -1918,27 +2202,177 @@ function adjustAdminUIForUser(){
     badge.textContent='👤 '+(currentUser.name||'')+(currentUser.isOwner?' · DONO':'');
   }
 }
+// ──────────────────── AUTH UI HELPERS ────────────────────
+function showScreen(id){
+  ['s1','s2','s3','s4','s5','s6','s-admin','s-login','s-signup','s-google-finish'].forEach(s=>{
+    const el=document.getElementById(s); if(el)el.classList.remove('active');
+  });
+  const target=document.getElementById(id); if(target)target.classList.add('active');
+  cur=id;
+}
+function goToLogin(){showScreen('s-login');}
+function goToSignup(){showScreen('s-signup');}
+function goToWelcome(){showScreen('s1');}
+
+async function doSignup(){
+  const btn=document.getElementById('btn-signup');
+  const err=document.getElementById('signup-err');err.style.display='none';
+  const shopName=document.getElementById('signup-shopname').value.trim();
+  const whatsapp=document.getElementById('signup-whatsapp').value.trim();
+  const email=document.getElementById('signup-email').value.trim();
+  const pass=document.getElementById('signup-pass').value;
+  if(!shopName){err.textContent='Informe o nome da barbearia.';err.style.display='block';return;}
+  if(!whatsapp||whatsapp.replace(/\D/g,'').length<10){err.textContent='Informe um WhatsApp válido.';err.style.display='block';return;}
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Email inválido.';err.style.display='block';return;}
+  if(!pass||pass.length<6){err.textContent='Senha precisa ter pelo menos 6 caracteres.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Criando…';
+  try{
+    await fs.signup(email,pass,shopName,whatsapp);
+    // onAuthReady vai detectar o login e levar pro admin automaticamente
+  }catch(e){
+    err.textContent=mapAuthError(e);err.style.display='block';
+    btn.disabled=false;btn.textContent='Criar conta →';
+  }
+}
+async function doLogin(){
+  const btn=document.getElementById('btn-login');
+  const err=document.getElementById('login-err');err.style.display='none';
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){err.textContent='Preencha email e senha.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Entrando…';
+  try{
+    await fs.login(email,pass);
+  }catch(e){
+    err.textContent=mapAuthError(e);err.style.display='block';
+    btn.disabled=false;btn.textContent='Entrar →';
+  }
+}
+async function doSignInGoogle(){
+  try{
+    const result=await fs.signInWithGoogle();
+    if(!result.hasShop){
+      // Usuário Google novo — vai pra tela de finalizar cadastro
+      window._pendingGoogleUser=result.user;
+      showScreen('s-google-finish');
+    }
+    // Senão, onAuthReady vai pegar e levar pro admin
+  }catch(e){
+    alert(mapAuthError(e));
+  }
+}
+async function doFinishGoogleSignup(){
+  const btn=document.getElementById('btn-gfin');
+  const err=document.getElementById('gfin-err');err.style.display='none';
+  const shopName=document.getElementById('gfin-shopname').value.trim();
+  const whatsapp=document.getElementById('gfin-whatsapp').value.trim();
+  if(!shopName){err.textContent='Informe o nome da barbearia.';err.style.display='block';return;}
+  if(!whatsapp||whatsapp.replace(/\D/g,'').length<10){err.textContent='Informe um WhatsApp válido.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Criando…';
+  try{
+    const user=window._pendingGoogleUser||fs.getCurrentAuthUser();
+    await fs.finalizeGoogleSignup(user,shopName,whatsapp);
+    window._pendingGoogleUser=null;
+    // Força recarregar pra disparar onAuthReady com shopId atualizado
+    location.reload();
+  }catch(e){
+    err.textContent=mapAuthError(e);err.style.display='block';
+    btn.disabled=false;btn.textContent='Finalizar cadastro →';
+  }
+}
+async function doLogout(){
+  try{await fs.logout();location.reload();}catch(e){alert('Erro ao sair.');}
+}
+async function doChangePassword(){
+  const newPass=prompt('Digite a nova senha (mín. 6 caracteres):');
+  if(!newPass)return;
+  if(newPass.length<6){alert('Senha precisa ter pelo menos 6 caracteres.');return;}
+  try{await fs.changePassword(newPass);alert('Senha alterada com sucesso.');}
+  catch(e){alert(mapAuthError(e));}
+}
+function mapAuthError(e){
+  const code=e?.code||'';
+  const map={
+    'auth/email-already-in-use':'Este email já está cadastrado. Tente entrar.',
+    'auth/invalid-email':'Email inválido.',
+    'auth/weak-password':'Senha muito fraca.',
+    'auth/user-not-found':'Email não encontrado.',
+    'auth/wrong-password':'Senha incorreta.',
+    'auth/invalid-credential':'Email ou senha incorretos.',
+    'auth/popup-closed-by-user':'Janela do Google fechada antes de finalizar.',
+    'auth/requires-recent-login':'Por segurança, saia e entre novamente antes de mudar a senha.',
+    'auth/network-request-failed':'Sem conexão. Tente novamente.'
+  };
+  return map[code]||(e?.message||'Erro inesperado. Tente novamente.');
+}
+
+// Limpa caches em memória pra forçar recarregar dados do shop atual
+function resetShopState(){
+  cfgLoaded=false;
+  appCfg={...DEFAULT_CFG};
+  loadedBarbers=[];
+  loadedCats=[];
+  loadedItems=[];
+}
+
 async function init(){
-  const pass=new URLSearchParams(window.location.search).get('admin');
+  const params=new URLSearchParams(window.location.search);
+  const pass=params.get('admin');
+  const shopFromUrl=params.get('shop');
+
+  // CAMINHO 1: ?admin=<senha> — barbeiro acessa via senha. Pode vir com ?shop=<id> também.
+  // Se não tiver ?shop=, cai no temporario-001 (compat com testes antigos).
   if(pass!==null){
+    const shopId=shopFromUrl||'temporario-001';
+    fs.setShopId(shopId);
+    resetShopState();
     const user=await authenticateAdmin(pass);
     if(user){
       currentUser=user;
-      await loadConfig();
-      document.getElementById('s1').classList.remove('active');
-      document.getElementById('s-admin').classList.add('active');
-      cur='s-admin';
+      await loadConfig(true);
+      showScreen('s-admin');
       adjustAdminUIForUser();
       loadBookingsTab();
       return;
     }
     alert('Senha inválida.');
   }
-  if(!FB_OK)document.getElementById('cfg-warn').classList.add('show');
-  // Pré-carrega config (para nome da barbearia) e barbeiros
-  await loadConfig();
-  await loadBarbers();
-  if(loadedBarbers.length===1){st.barbeiroId=loadedBarbers[0]._key;st.barbeiroName=loadedBarbers[0].name||'';}
+
+  // CAMINHO 2: aguarda estado de auth (Firebase Auth). Pode estar logado ou não.
+  fs.onAuthReady(async (state)=>{
+    // Sempre que o estado de auth muda, limpa caches porque o SHOP_ID pode ter mudado
+    resetShopState();
+
+    if(state.user&&state.shopId){
+      // Logado E tem shop → admin
+      currentUser={
+        id:state.user.uid,
+        name:state.user.displayName||state.user.email,
+        isOwner:true,
+        shareWithOwner:true,
+        firebaseUid:state.user.uid
+      };
+      document.getElementById('btn-admin-logout').style.display='';
+      await loadConfig(true);
+      showScreen('s-admin');
+      adjustAdminUIForUser();
+      loadBookingsTab();
+    } else if(state.user&&!state.shopId){
+      // Logado via Google mas sem shop — completar cadastro
+      window._pendingGoogleUser=state.user;
+      showScreen('s-google-finish');
+    } else {
+      // Não logado — modo cliente.
+      // Se URL tem ?shop=<id>, usa esse. Senão, fallback pra temporario-001.
+      if(!FB_OK)document.getElementById('cfg-warn').classList.add('show');
+      const customerShopId=shopFromUrl||'temporario-001';
+      fs.setShopId(customerShopId);
+      await loadConfig(true);
+      await loadBarbers(true);
+      if(loadedBarbers.length===1){st.barbeiroId=loadedBarbers[0]._key;st.barbeiroName=loadedBarbers[0].name||'';}
+      showScreen('s1');
+    }
+  });
 }
 document.addEventListener('DOMContentLoaded', init);
 </script>
