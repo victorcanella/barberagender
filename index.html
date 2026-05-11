@@ -524,9 +524,9 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
         </div>
       </div>
       <div id="barber-pass-wrap">
-        <label class="inp-label" style="margin-top:14px">Senha de acesso</label>
+        <label class="inp-label" style="margin-top:14px" id="barber-pass-label">Senha de acesso</label>
         <input id="barber-pass-inp" class="inp" type="text" placeholder="Mín. 4 caracteres" autocomplete="new-password">
-        <div class="sub" style="font-size:11px;margin-top:4px">Este barbeiro acessará o painel via link com esta senha.</div>
+        <div class="sub" style="font-size:11px;margin-top:4px" id="barber-pass-hint">Este barbeiro acessará o painel via link com esta senha.</div>
       </div>
       <div id="barber-share-row" style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;background:#f8f8f8;padding:12px 14px;border-radius:10px;gap:12px">
         <div><div style="font-size:13px;font-weight:700;color:#111">Compartilhar dados com o dono</div><div style="font-size:11px;color:#999;margin-top:2px">O dono pode ver agendamentos e relatórios deste barbeiro</div></div>
@@ -1699,10 +1699,15 @@ async function loadBarbersTab(){
       const photoThumb=b.photoUrl
         ? `<img src="${b.photoUrl}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0">`
         : `<div style="width:44px;height:44px;border-radius:50%;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💈</div>`;
-      // Dono entra via Firebase Auth — não tem link de senha pra mostrar
       let accessInfo='';
       if(b.isOwner){
-        accessInfo='<div class="barber-pass" style="color:#888;font-size:11px">Acesso via email/senha do app</div>';
+        // Dono: tem painel completo (Firebase Auth) e opcionalmente painel individual (senha)
+        accessInfo='<div class="barber-pass" style="color:#888;font-size:11px">📊 Painel completo: login email/senha do app</div>';
+        if(b.pass){
+          const shopId=fs.getShopId()||'';
+          const fullLink=`${location.origin}${location.pathname}?shop=${encodeURIComponent(shopId)}&admin=${encodeURIComponent(b.pass)}`;
+          accessInfo+=`<div class="barber-pass">👤 Meu Painel: <strong>${b.pass}</strong> · <a href="${fullLink}" target="_blank" style="color:var(--gold-deep);text-decoration:none">link</a> · <a onclick="copyBarberLink('${b._key}',event)" style="color:var(--gold-deep);text-decoration:none;cursor:pointer">copiar</a></div>`;
+        }
       } else if(b.pass){
         const shopId=fs.getShopId()||'';
         const fullLink=`${location.origin}${location.pathname}?shop=${encodeURIComponent(shopId)}&admin=${encodeURIComponent(b.pass)}`;
@@ -1739,8 +1744,17 @@ function openBarberModal(key){
   document.getElementById('barber-pass-inp').value=b?(b.pass||''):'';
   document.getElementById('barber-share-chk').checked=b?(b.shareWithOwner!==false):true;
   document.getElementById('barber-share-row').style.display=isOwnerEdit?'none':'flex';
-  // Dono não tem senha de barbeiro (entra via Firebase Auth) — esconde o campo
-  document.getElementById('barber-pass-wrap').style.display=isOwnerEdit?'none':'block';
+  // Senha sempre visível, mas com label/dica diferente pra dono (lá é opcional, pra visão individual)
+  document.getElementById('barber-pass-wrap').style.display='block';
+  if(isOwnerEdit){
+    document.getElementById('barber-pass-label').textContent='Senha pra "Meu Painel" (opcional)';
+    document.getElementById('barber-pass-hint').textContent='Use pra acessar seu painel individual (só seus atendimentos e indicadores), via link separado. Painel completo continua acessando pelo login do app.';
+    document.getElementById('barber-pass-inp').placeholder='Opcional — deixe vazio se não quiser';
+  } else {
+    document.getElementById('barber-pass-label').textContent='Senha de acesso';
+    document.getElementById('barber-pass-hint').textContent='Este barbeiro acessará o painel via link com esta senha.';
+    document.getElementById('barber-pass-inp').placeholder='Mín. 4 caracteres';
+  }
   // Foto: mostra a atual se existir
   const preview=document.getElementById('barber-photo-preview');
   const placeholder=document.getElementById('barber-photo-placeholder');
@@ -1774,15 +1788,19 @@ async function saveBarber(){
   const isOwnerEdit=existing&&existing.isOwner;
   if(!name||name.length<2){alert('Digite um nome (mín. 2 letras).');return;}
   if(phone&&phone.length<10){alert('Telefone inválido (use DDD + número).');return;}
-  // Dono não precisa de senha (entra via Firebase Auth). Demais barbeiros precisam.
+  // Demais barbeiros: senha obrigatória. Dono: opcional, mas se preencher precisa ser válida.
   if(!isOwnerEdit){
     if(!pass||pass.length<4){alert('Senha deve ter pelo menos 4 caracteres.');return;}
+    const dup=loadedBarbers.find(x=>x._key!==barberSt.key&&x.pass===pass);
+    if(dup){alert(`Senha já em uso por "${dup.name}". Escolha outra.`);return;}
+  } else if(pass){
+    if(pass.length<4){alert('Se preencher senha, ela deve ter pelo menos 4 caracteres.');return;}
     const dup=loadedBarbers.find(x=>x._key!==barberSt.key&&x.pass===pass);
     if(dup){alert(`Senha já em uso por "${dup.name}". Escolha outra.`);return;}
   }
   let barberId=barberSt.key;
   if(barberId){
-    const data=isOwnerEdit?{name,subtitle,phone}:{name,pass,subtitle,phone,shareWithOwner:share};
+    const data=isOwnerEdit?{name,subtitle,phone,pass:pass||''}:{name,pass,subtitle,phone,shareWithOwner:share};
     await fs.update('barbeiros', barberId, data);
     if(currentUser&&currentUser.id===barberId){currentUser.name=name;adjustAdminUIForUser();}
   } else {
@@ -2199,7 +2217,10 @@ function adjustAdminUIForUser(){
   ownerOnly.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=currentUser&&currentUser.isOwner?'':'none';});
   const badge=document.querySelector('.admin-badge');
   if(badge&&currentUser){
-    badge.textContent='👤 '+(currentUser.name||'')+(currentUser.isOwner?' · DONO':'');
+    let suffix='';
+    if(currentUser.isOwner)suffix=' · DONO';
+    else if(currentUser.viewingAsBarber)suffix=' · MEU PAINEL';
+    badge.textContent='👤 '+(currentUser.name||'')+suffix;
   }
 }
 // ──────────────────── AUTH UI HELPERS ────────────────────
@@ -2320,15 +2341,18 @@ async function init(){
   const pass=params.get('admin');
   const shopFromUrl=params.get('shop');
 
-  // CAMINHO 1: ?admin=<senha> — barbeiro acessa via senha. Pode vir com ?shop=<id> também.
-  // Se não tiver ?shop=, cai no temporario-001 (compat com testes antigos).
+  // CAMINHO 1: ?admin=<senha> — entrada via senha (barbeiro OU dono em modo individual).
+  // Mesmo que a senha bata com a do dono, esse caminho FORÇA modo "barbeiro individual"
+  // (só seus próprios agendamentos, sem Config/Cardápio/Barbeiros).
   if(pass!==null){
     const shopId=shopFromUrl||'temporario-001';
     fs.setShopId(shopId);
     resetShopState();
     const user=await authenticateAdmin(pass);
     if(user){
-      currentUser=user;
+      // Força isOwner=false nesta sessão pra dono entrar no "Meu Painel".
+      // Pro painel completo, ele tem que sair e entrar pelo email/senha do app.
+      currentUser={...user, isOwner:false, viewingAsBarber:user.isOwner};
       await loadConfig(true);
       showScreen('s-admin');
       adjustAdminUIForUser();
