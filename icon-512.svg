@@ -8,7 +8,11 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="96" fill="url(#g512)"/>
-  <!-- Letra "Y" estilizada, branca, centralizada (safe-zone central pra maskable) -->
-  <text x="256" y="340" font-family="Georgia, 'Playfair Display', serif" font-size="328" font-weight="800"
-        text-anchor="middle" fill="#ffffff" letter-spacing="-4">Y</text>
+  <!-- Símbolo "+" estilizado (Plus Barber), branco, centralizado, safe-zone pra maskable -->
+  <g fill="#ffffff">
+    <!-- Barra horizontal -->
+    <rect x="128" y="224" width="256" height="64" rx="16"/>
+    <!-- Barra vertical -->
+    <rect x="224" y="128" width="64" height="256" rx="16"/>
+  </g>
 </svg>

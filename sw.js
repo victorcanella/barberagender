@@ -12,7 +12,7 @@
 // vão limpar o cache antigo automaticamente.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'barbearia-shell-v2';
+const CACHE_VERSION = 'barbearia-shell-v3';
 const SHELL_FILES = [
   '/',
   '/index.html',

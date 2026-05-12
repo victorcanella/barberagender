@@ -1,6 +1,6 @@
 {
-  "name": "YourBarber",
-  "short_name": "YourBarber",
+  "name": "Plus Barber",
+  "short_name": "Plus Barber",
   "description": "Sistema de agendamento para barbearias",
   "start_url": "/",
   "scope": "/",

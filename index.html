@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover">
-<title>YourBarber</title>
+<title>Plus Barber</title>
 <!-- PWA: manifest e meta tags -->
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0d0d0d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="YourBarber">
+<meta name="apple-mobile-web-app-title" content="Plus Barber">
 <link rel="apple-touch-icon" href="/icon-192.svg">
 <link rel="icon" type="image/svg+xml" href="/icon-192.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1012,7 +1012,7 @@ function getBarberName(id){
 }
 
 // ── Config (horário de funcionamento) ────────────────────────
-const DEFAULT_CFG={openHour:9,openMin:0,closeHour:19,closeMin:0,slotMinutes:30,closedDays:[0],shopName:'YourBarber',ownerEmail:'',bannerBg:'',bannerFg:''};
+const DEFAULT_CFG={openHour:9,openMin:0,closeHour:19,closeMin:0,slotMinutes:30,closedDays:[0],shopName:'Plus Barber',ownerEmail:'',bannerBg:'',bannerFg:''};
 let appCfg={...DEFAULT_CFG};
 let cfgLoaded=false;
 async function loadConfig(force){
@@ -2607,7 +2607,7 @@ async function init(){
         document.getElementById('s1-customer-form').style.display='flex';
         document.getElementById('s1-footer').style.display='';
       } else {
-        // URL raiz sem shop: marca do app (YourBarber), sem carregar nenhum shop específico.
+        // URL raiz sem shop: marca do app (Plus Barber), sem carregar nenhum shop específico.
         // Mostra mensagem alternativa em vez do formulário do cliente.
         appCfg={...DEFAULT_CFG};
         cfgLoaded=true;
