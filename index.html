@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover">
-<title>Barbearia</title>
+<title>YourBarber</title>
 <!-- PWA: manifest e meta tags -->
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#c9a55a">
+<meta name="theme-color" content="#0d0d0d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Barbearia">
+<meta name="apple-mobile-web-app-title" content="YourBarber">
 <link rel="apple-touch-icon" href="/icon-192.svg">
 <link rel="icon" type="image/svg+xml" href="/icon-192.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,9 +32,9 @@ body{font-family:var(--font-body);background:#e8e8e8;display:flex;justify-conten
 @keyframes sol{from{transform:translateX(0)}to{transform:translateX(-100%)}}
 @keyframes sor{from{transform:translateX(0)}to{transform:translateX(100%)}}
 
-.logo-hdr{background:#0d0d0d;padding:32px 24px 26px;text-align:center;flex-shrink:0;border-bottom:2px solid var(--gold)}
-.shop-name{color:var(--gold);font-family:var(--font-display);font-weight:800;font-size:30px;letter-spacing:.02em;text-align:center;line-height:1.15}
-.shop-name-sm{color:var(--gold);font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.01em;line-height:1}
+.logo-hdr{background:var(--banner-bg,linear-gradient(135deg,#000000,#2a2a2a));padding:32px 24px 26px;text-align:center;flex-shrink:0}
+.shop-name{color:var(--banner-fg,#ffffff);font-family:var(--font-display);font-weight:800;font-size:30px;letter-spacing:.02em;text-align:center;line-height:1.15}
+.shop-name-sm{color:var(--banner-fg,#ffffff);font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.01em;line-height:1}
 
 .topbar{background:#0d0d0d;padding:0 20px;height:56px;display:flex;align-items:center;gap:14px;flex-shrink:0}
 .back-btn{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;flex-shrink:0}
@@ -279,16 +279,35 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
   <div id="s1" class="screen active">
     <div class="logo-hdr" style="position:relative">
       <div class="shop-name" id="shop-name-big" style="visibility:hidden">Barbearia</div>
-      <a id="link-owner-login" onclick="goToLogin()" style="position:absolute;top:14px;right:14px;color:var(--gold);font-size:11px;cursor:pointer;font-weight:600;text-decoration:none;letter-spacing:.5px">SOU DA BARBEARIA →</a>
+      <a id="link-owner-login" onclick="goToLogin()" style="position:absolute;top:14px;right:14px;color:var(--banner-fg,#ffffff);opacity:.75;font-size:11px;cursor:pointer;font-weight:600;text-decoration:none;letter-spacing:.5px">SOU DA BARBEARIA →</a>
     </div>
     <div class="body" style="display:flex;flex-direction:column;gap:18px">
       <div id="cfg-warn" class="cfg-warn">⚠️ <strong>Firebase não configurado.</strong> O bloqueio de horários não funcionará.</div>
-      <div><div class="h1">Bem-vindo! 👋</div><div class="sub">Preencha seus dados para iniciar o agendamento.</div></div>
-      <div><label class="inp-label">Seu nome</label><input id="inp-name" class="inp" type="text" placeholder="Ex: João Silva" oninput="onName(this.value)"></div>
-      <div><label class="inp-label">WhatsApp / Telefone</label><input id="inp-phone" class="inp" type="tel" placeholder="(00) 00000-0000" inputmode="tel" required oninput="onPhone(this)"></div>
+
+      <!-- Conteúdo A: formulário pro cliente final (visível quando há ?shop=<id>) -->
+      <div id="s1-customer-form" style="display:flex;flex-direction:column;gap:18px">
+        <div><div class="h1">Bem-vindo! 👋</div><div class="sub">Preencha seus dados para iniciar o agendamento.</div></div>
+        <div><label class="inp-label">Seu nome</label><input id="inp-name" class="inp" type="text" placeholder="Ex: João Silva" oninput="onName(this.value)"></div>
+        <div><label class="inp-label">WhatsApp / Telefone</label><input id="inp-phone" class="inp" type="tel" placeholder="(00) 00000-0000" inputmode="tel" required oninput="onPhone(this)"></div>
+      </div>
+
+      <!-- Conteúdo B: landing do app (visível quando NÃO há ?shop=<id>) -->
+      <div id="s1-app-landing" style="display:none;flex-direction:column;gap:18px;text-align:center;padding-top:20px">
+        <div><div class="h1">Sistema de agendamento</div><div class="sub" style="margin-top:8px">Pra barbearias gerenciarem horários, clientes e profissionais de forma simples.</div></div>
+        <div style="background:#f8f8f8;border-radius:12px;padding:18px;text-align:left">
+          <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:8px">👋 É cliente?</div>
+          <div style="font-size:12px;color:#666;line-height:1.5">Use o link que a sua barbearia compartilhou pra agendar um horário.</div>
+        </div>
+        <div style="background:#f8f8f8;border-radius:12px;padding:18px;text-align:left">
+          <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:8px">💈 Tem uma barbearia?</div>
+          <div style="font-size:12px;color:#666;line-height:1.5;margin-bottom:12px">Crie sua conta grátis e comece a receber agendamentos hoje.</div>
+          <button class="btn btn-blk" onclick="goToSignup()" style="padding:12px;border-radius:10px;font-size:13px">Criar minha barbearia →</button>
+        </div>
+      </div>
+
       <div style="flex:1"></div>
     </div>
-    <div class="footer"><button id="btn1" class="btn btn-blk" onclick="nav('s2',1)" disabled>Continuar →</button></div>
+    <div class="footer" id="s1-footer"><button id="btn1" class="btn btn-blk" onclick="nav('s2',1)" disabled>Continuar →</button></div>
   </div>
 
   <!-- S-LOGIN -->
@@ -993,12 +1012,12 @@ function getBarberName(id){
 }
 
 // ── Config (horário de funcionamento) ────────────────────────
-const DEFAULT_CFG={openHour:9,openMin:0,closeHour:19,closeMin:0,slotMinutes:30,closedDays:[0],shopName:'Barbearia',ownerEmail:''};
+const DEFAULT_CFG={openHour:9,openMin:0,closeHour:19,closeMin:0,slotMinutes:30,closedDays:[0],shopName:'YourBarber',ownerEmail:'',bannerBg:'',bannerFg:''};
 let appCfg={...DEFAULT_CFG};
 let cfgLoaded=false;
 async function loadConfig(force){
   if(cfgLoaded&&!force)return appCfg;
-  if(!FB_OK){appCfg={...DEFAULT_CFG};cfgLoaded=true;applyShopName();return appCfg;}
+  if(!FB_OK){appCfg={...DEFAULT_CFG};cfgLoaded=true;applyShopName();applyTheme();return appCfg;}
   const data=await fs.getConfig();
   appCfg={...DEFAULT_CFG,...(data||{})};
   // Firebase pode retornar array como objeto com chaves numéricas
@@ -1006,7 +1025,7 @@ async function loadConfig(force){
   else if(appCfg.closedDays&&typeof appCfg.closedDays==='object')appCfg.closedDays=Object.values(appCfg.closedDays).map(Number);
   else appCfg.closedDays=[0];
   cfgLoaded=true;
-  applyShopName();
+  applyShopName();applyTheme();
   return appCfg;
 }
 function cfgOpenMin(){return appCfg.openHour*60+appCfg.openMin;}
@@ -1020,6 +1039,18 @@ function applyShopName(){
     const el=document.getElementById(id);
     if(el){el.textContent=n;el.style.visibility='visible';}
   });
+}
+// Aplica cores customizadas do banner (cor de fundo e cor das letras).
+// Default: gradiente preto + letras brancas.
+function applyTheme(){
+  const bg=(appCfg.bannerBg||'').trim();
+  const fg=(appCfg.bannerFg||'').trim();
+  const root=document.documentElement;
+  // Background: usa valor salvo OU cai pro gradiente default (definido no CSS)
+  if(bg)root.style.setProperty('--banner-bg',bg);
+  else root.style.removeProperty('--banner-bg');
+  if(fg)root.style.setProperty('--banner-fg',fg);
+  else root.style.removeProperty('--banner-fg');
 }
 function normalizeWA(p){
   const d=(p||'').toString().replace(/\D/g,'');
@@ -1925,6 +1956,10 @@ async function loadConfigTab(){
   }).join('');
   const shopVal=(appCfg.shopName||'').replace(/"/g,'&quot;');
   const emailVal=(appCfg.ownerEmail||'').replace(/"/g,'&quot;');
+  // Pra o input type=color funcionar, precisa ser um hex (#rrggbb). Se bannerBg for um gradient ou vazio, usa #0d0d0d como padrão pro picker.
+  const bgVal=(appCfg.bannerBg||'').match(/^#[0-9a-fA-F]{6}$/)?appCfg.bannerBg:'#0d0d0d';
+  const fgVal=(appCfg.bannerFg||'').match(/^#[0-9a-fA-F]{6}$/)?appCfg.bannerFg:'#ffffff';
+  const usingDefaultTheme=!appCfg.bannerBg&&!appCfg.bannerFg;
   body.innerHTML=`
     <div class="h1" style="font-size:18px;margin-bottom:14px">⚙️ Identidade</div>
     <div class="sub" style="margin-bottom:14px">Nome da barbearia exibido no topo das telas e nas mensagens.</div>
@@ -1933,6 +1968,25 @@ async function loadConfigTab(){
     <label class="inp-label">E-mail do dono (opcional)</label>
     <input id="cfg-owner-email" class="inp" type="email" placeholder="dono@email.com" value="${emailVal}" style="margin-bottom:6px">
     <div class="sub" style="font-size:11px;margin-bottom:22px">Se preenchido, o cliente verá o botão "Enviar por E-mail" na confirmação.</div>
+
+    <div class="h1" style="font-size:18px;margin-bottom:14px">🎨 Aparência do banner</div>
+    <div class="sub" style="margin-bottom:14px">Personalize as cores do banner que aparece pro dono, pros barbeiros e pros clientes.</div>
+    <div class="form-row">
+      <div class="inp-wrap">
+        <label class="inp-label">Cor de fundo</label>
+        <input id="cfg-banner-bg" class="inp" type="color" value="${bgVal}" style="padding:4px;height:44px;cursor:pointer">
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-label">Cor das letras</label>
+        <input id="cfg-banner-fg" class="inp" type="color" value="${fgVal}" style="padding:4px;height:44px;cursor:pointer">
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:6px;margin-bottom:22px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#666;cursor:pointer">
+        <input type="checkbox" id="cfg-banner-default" ${usingDefaultTheme?'checked':''} style="cursor:pointer">
+        Usar padrão (preto gradiente / letras brancas)
+      </label>
+    </div>
 
     <div class="h1" style="font-size:18px;margin-bottom:14px">⚙️ Horário de funcionamento</div>
     <div class="sub" style="margin-bottom:20px">Define os horários disponíveis para agendamento. Aplica-se a clientes e ao painel de bloqueios.</div>
@@ -2012,14 +2066,19 @@ async function saveConfigForm(btn){
   const [oh,om]=document.getElementById('cfg-open').value.split(':').map(Number);
   const [ch,cm]=document.getElementById('cfg-close').value.split(':').map(Number);
   const slot=Number(document.getElementById('cfg-slot').value);
+  // Cores do banner: se "usar padrão" estiver marcado, salva vazio (cai pro CSS default).
+  // Senão, salva o hex escolhido pelo color picker.
+  const useDefault=document.getElementById('cfg-banner-default').checked;
+  const bannerBg=useDefault?'':document.getElementById('cfg-banner-bg').value;
+  const bannerFg=useDefault?'':document.getElementById('cfg-banner-fg').value;
   if(!shopName){alert('Informe o nome da barbearia.');btn.disabled=false;btn.textContent='💾 Salvar configuração';return;}
   if(ownerEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)){alert('E-mail inválido.');btn.disabled=false;btn.textContent='💾 Salvar configuração';return;}
   if(isNaN(oh)||isNaN(ch)||isNaN(slot)||(oh*60+om)>=(ch*60+cm)){alert('Horário inválido.');btn.disabled=false;btn.textContent='💾 Salvar configuração';return;}
-  const cfg={openHour:oh,openMin:om||0,closeHour:ch,closeMin:cm||0,slotMinutes:slot,closedDays:appCfg.closedDays||[0],shopName,ownerEmail};
+  const cfg={openHour:oh,openMin:om||0,closeHour:ch,closeMin:cm||0,slotMinutes:slot,closedDays:appCfg.closedDays||[0],shopName,ownerEmail,bannerBg,bannerFg};
   try{
     if(FB_OK)await fs.saveConfig(cfg);
     appCfg={...appCfg,...cfg};cfgLoaded=true;
-    applyShopName();
+    applyShopName();applyTheme();
     const msg=document.getElementById('cfg-msg');msg.style.display='block';
     setTimeout(()=>{msg.style.display='none';},2200);
   }catch(e){alert('Erro ao salvar.');}
@@ -2533,20 +2592,31 @@ async function init(){
       window._pendingGoogleUser=state.user;
       showScreen('s-google-finish');
     } else {
-      // Não logado — modo cliente.
-      // Se URL tem ?shop=<id>, usa esse. Senão, fallback pra temporario-001.
+      // Não logado.
       if(!FB_OK)document.getElementById('cfg-warn').classList.add('show');
-      const customerShopId=shopFromUrl||'temporario-001';
-      fs.setShopId(customerShopId);
-      // Quando o cliente acessa um shop específico, esconde o link "SOU DA BARBEARIA"
-      // (evita cadastros de dono acidentais; só faz sentido na URL raiz).
       if(shopFromUrl){
+        // Cliente acessando shop específico
+        fs.setShopId(shopFromUrl);
+        // Esconde o link "SOU DA BARBEARIA" (não faz sentido pra cliente final)
         const link=document.getElementById('link-owner-login');
         if(link)link.style.display='none';
+        await loadConfig(true);
+        await loadBarbers(true);
+        if(loadedBarbers.length===1){st.barbeiroId=loadedBarbers[0]._key;st.barbeiroName=loadedBarbers[0].name||'';}
+        document.getElementById('s1-app-landing').style.display='none';
+        document.getElementById('s1-customer-form').style.display='flex';
+        document.getElementById('s1-footer').style.display='';
+      } else {
+        // URL raiz sem shop: marca do app (YourBarber), sem carregar nenhum shop específico.
+        // Mostra mensagem alternativa em vez do formulário do cliente.
+        appCfg={...DEFAULT_CFG};
+        cfgLoaded=true;
+        applyShopName();
+        applyTheme();
+        document.getElementById('s1-customer-form').style.display='none';
+        document.getElementById('s1-app-landing').style.display='flex';
+        document.getElementById('s1-footer').style.display='none';
       }
-      await loadConfig(true);
-      await loadBarbers(true);
-      if(loadedBarbers.length===1){st.barbeiroId=loadedBarbers[0]._key;st.barbeiroName=loadedBarbers[0].name||'';}
       showScreen('s1');
     }
   });

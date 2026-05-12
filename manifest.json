@@ -1,13 +1,13 @@
 {
-  "name": "Barbearia — Agendamento",
-  "short_name": "Barbearia",
+  "name": "YourBarber",
+  "short_name": "YourBarber",
   "description": "Sistema de agendamento para barbearias",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0d0d0d",
-  "theme_color": "#c9a55a",
+  "theme_color": "#0d0d0d",
   "icons": [
     {
       "src": "icon-192.svg",
