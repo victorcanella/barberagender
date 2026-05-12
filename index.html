@@ -514,12 +514,6 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
       <label class="inp-label" style="margin-top:14px">WhatsApp do profissional</label>
       <input id="barber-phone-inp" class="inp" type="tel" placeholder="(00) 00000-0000" inputmode="tel" oninput="onBarberPhoneInp(this)">
       <div class="sub" style="font-size:11px;margin-top:4px">Receberá as confirmações de agendamento deste profissional.</div>
-      <div id="barber-email-wrap">
-        <label class="inp-label" style="margin-top:14px" id="barber-email-label">Email de acesso</label>
-        <input id="barber-email-inp" class="inp" type="email" placeholder="barbeiro@email.com" autocomplete="off">
-        <div class="sub" style="font-size:11px;margin-top:4px" id="barber-email-hint">Este email será usado pelo barbeiro pra entrar no app.</div>
-        <button type="button" id="btn-send-reset" onclick="doSendBarberReset()" style="display:none;margin-top:8px;background:#f0f0f0;color:#111;border:1px solid #ddd;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">📧 Enviar email de redefinição de senha</button>
-      </div>
       <label class="inp-label" style="margin-top:14px">Foto (opcional)</label>
       <div style="display:flex;align-items:center;gap:12px;background:#f8f8f8;padding:10px;border-radius:10px">
         <img id="barber-photo-preview" src="" alt="" style="width:60px;height:60px;border-radius:50%;object-fit:cover;background:#e8e8e8;display:none">
@@ -793,46 +787,6 @@ window.fs = {
   setShopId(id) { SHOP_ID = id; },
   getShopId() { return SHOP_ID; },
   getCurrentAuthUser() { return auth.currentUser; },
-
-  // ════ BARBEIRO COM AUTH ════
-  // Cria conta Firebase Auth pro barbeiro SEM deslogar o dono.
-  // Técnica: usa uma segunda instância de Firebase Auth, temporária e isolada.
-  async createBarberAccount(email, password, name, phone, subtitle, share) {
-    if (!auth.currentUser) throw new Error('Você precisa estar logado.');
-    if (!SHOP_ID) throw new Error('Sem shop ativo.');
-    const secondaryAppName = 'create-barber-' + Date.now();
-    const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
-    const secondaryAuth = getAuth(secondaryApp);
-    try {
-      // Cria a conta Firebase Auth nessa instância separada
-      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
-      const barberUid = cred.user.uid;
-      // Cria doc do barbeiro
-      const barberRef = await addDoc(collection(db, `shops/${SHOP_ID}/barbeiros`), {
-        name, phone, subtitle, email,
-        isOwner: false, shareWithOwner: share !== false,
-        ts: Date.now()
-      });
-      // Cria /users/{uid} pro barbeiro
-      await setDoc(doc(db, `users/${barberUid}`), {
-        email, shopId: SHOP_ID, role: 'barber',
-        barbeiroId: barberRef.id,
-        createdAt: new Date()
-      });
-      // Limpa: signOut da secondary e descarta a instância
-      await signOut(secondaryAuth);
-      await deleteApp(secondaryApp);
-      return barberRef.id;
-    } catch (e) {
-      try { await deleteApp(secondaryApp); } catch {}
-      throw e;
-    }
-  },
-
-  // Envia email de redefinição de senha pra o barbeiro (mesmo Firebase Auth do dono)
-  async sendBarberPasswordReset(email) {
-    await sendPasswordResetEmail(auth, email);
-  },
 
   // ════ STORAGE ════
   // Upload de foto de barbeiro com compressão automática (400px no maior lado, 80% qualidade JPEG)
@@ -1830,16 +1784,12 @@ async function loadBarbersTab(){
           const fullLink=`${location.origin}${location.pathname}?shop=${encodeURIComponent(shopId)}&admin=${encodeURIComponent(b.pass)}`;
           accessInfo+=`<div class="barber-pass">👤 Meu Painel: <strong>${b.pass}</strong> · <a href="${fullLink}" target="_blank" style="color:var(--gold-deep);text-decoration:none">link</a> · <a onclick="copyBarberLink('${b._key}',event)" style="color:var(--gold-deep);text-decoration:none;cursor:pointer">copiar</a></div>`;
         }
-      } else if(b.email){
-        // Barbeiro novo, com Firebase Auth
-        accessInfo=`<div class="barber-pass" style="color:#22aa44;font-size:11px">✓ Acesso por email: <strong>${b.email}</strong> (loga em "SOU DA BARBEARIA")</div>`;
       } else if(b.pass){
-        // Barbeiro legado (modo antigo, senha-url)
         const shopId=fs.getShopId()||'';
         const fullLink=`${location.origin}${location.pathname}?shop=${encodeURIComponent(shopId)}&admin=${encodeURIComponent(b.pass)}`;
-        accessInfo=`<div class="barber-pass" style="color:#a8853f">⚠️ Modo legado · senha: <strong>${b.pass}</strong> · <a href="${fullLink}" target="_blank" style="color:var(--gold-deep);text-decoration:none">link</a> · <a onclick="copyBarberLink('${b._key}',event)" style="color:var(--gold-deep);text-decoration:none;cursor:pointer">copiar</a></div>`;
+        accessInfo=`<div class="barber-pass">🔒 senha: <strong>${b.pass}</strong> · <a href="${fullLink}" target="_blank" style="color:var(--gold-deep);text-decoration:none">link</a> · <a onclick="copyBarberLink('${b._key}',event)" style="color:var(--gold-deep);text-decoration:none;cursor:pointer">copiar</a></div>`;
       } else {
-        accessInfo='<div class="barber-pass" style="color:#c33;font-size:11px">⚠️ sem acesso configurado</div>';
+        accessInfo='<div class="barber-pass" style="color:#c33;font-size:11px">⚠️ sem senha — não consegue acessar</div>';
       }
       html+=`<div class="barber-card">
         ${photoThumb}
@@ -1870,53 +1820,16 @@ function openBarberModal(key){
   document.getElementById('barber-pass-inp').value=b?(b.pass||''):'';
   document.getElementById('barber-share-chk').checked=b?(b.shareWithOwner!==false):true;
   document.getElementById('barber-share-row').style.display=isOwnerEdit?'none':'flex';
-
-  const hasAuthEmail=b&&!!b.email;
-  const emailWrap=document.getElementById('barber-email-wrap');
-  const emailInp=document.getElementById('barber-email-inp');
-  const passWrap=document.getElementById('barber-pass-wrap');
-  const passLabel=document.getElementById('barber-pass-label');
-  const passHint=document.getElementById('barber-pass-hint');
-  const passInp=document.getElementById('barber-pass-inp');
-  const btnReset=document.getElementById('btn-send-reset');
-
+  // Senha sempre visível, mas com label/dica diferente pra dono (lá é opcional, pra visão individual)
+  document.getElementById('barber-pass-wrap').style.display='block';
   if(isOwnerEdit){
-    // Dono: tem auth próprio (Firebase Auth do login). Email aqui é só informativo.
-    // E ainda existe a opção de senha-legacy pra "Meu Painel" (visão individual).
-    emailWrap.style.display='none';
-    btnReset.style.display='none';
-    passWrap.style.display='block';
-    passLabel.textContent='Senha pra "Meu Painel" (opcional)';
-    passHint.textContent='Use pra acessar seu painel individual (só seus atendimentos e indicadores), via link separado. Painel completo continua acessando pelo login do app.';
-    passInp.placeholder='Opcional — deixe vazio se não quiser';
-  } else if(b&&hasAuthEmail){
-    // Editando barbeiro que JÁ tem Firebase Auth (criado com email)
-    // Email é readonly (Auth não permite mudar facilmente). Senha some — usa botão "redefinir".
-    emailWrap.style.display='block';
-    emailInp.value=b.email;
-    emailInp.readOnly=true;
-    emailInp.style.background='#f5f5f5';
-    btnReset.style.display='inline-block';
-    passWrap.style.display='none';
-  } else if(b&&!hasAuthEmail){
-    // Editando barbeiro LEGADO (sem email, usa senha-url antiga). Mantém compatibilidade.
-    emailWrap.style.display='none';
-    btnReset.style.display='none';
-    passWrap.style.display='block';
-    passLabel.textContent='Senha de acesso (modo legado)';
-    passHint.innerHTML='Este barbeiro foi criado no modo antigo, com senha-URL. <strong>Recomendado:</strong> apagar e recriar com email.';
-    passInp.placeholder='Mín. 4 caracteres';
+    document.getElementById('barber-pass-label').textContent='Senha pra "Meu Painel" (opcional)';
+    document.getElementById('barber-pass-hint').textContent='Use pra acessar seu painel individual (só seus atendimentos e indicadores), via link separado. Painel completo continua acessando pelo login do app.';
+    document.getElementById('barber-pass-inp').placeholder='Opcional — deixe vazio se não quiser';
   } else {
-    // Criando barbeiro NOVO — pede email + senha (Firebase Auth)
-    emailWrap.style.display='block';
-    emailInp.value='';
-    emailInp.readOnly=false;
-    emailInp.style.background='';
-    btnReset.style.display='none';
-    passWrap.style.display='block';
-    passLabel.textContent='Senha inicial';
-    passHint.textContent='Mín. 6 caracteres. Compartilhe com o barbeiro — ele pode trocar depois.';
-    passInp.placeholder='Mín. 6 caracteres';
+    document.getElementById('barber-pass-label').textContent='Senha de acesso';
+    document.getElementById('barber-pass-hint').textContent='Este barbeiro acessará o painel via link com esta senha.';
+    document.getElementById('barber-pass-inp').placeholder='Mín. 4 caracteres';
   }
   // Foto: mostra a atual se existir
   const preview=document.getElementById('barber-photo-preview');
@@ -1945,61 +1858,29 @@ async function saveBarber(){
   const name=document.getElementById('barber-name-inp').value.trim();
   const subtitle=document.getElementById('barber-subtitle-inp').value.trim();
   const phone=document.getElementById('barber-phone-inp').value.replace(/\D/g,'');
-  const email=(document.getElementById('barber-email-inp').value||'').trim();
   const pass=document.getElementById('barber-pass-inp').value.trim();
   const share=document.getElementById('barber-share-chk').checked;
   const existing=barberSt.key?loadedBarbers.find(x=>x._key===barberSt.key):null;
   const isOwnerEdit=existing&&existing.isOwner;
-  const hasAuthEmail=existing&&!!existing.email;
-  const isNew=!barberSt.key;
-
-  // Validação básica
   if(!name||name.length<2){alert('Digite um nome (mín. 2 letras).');return;}
   if(phone&&phone.length<10){alert('Telefone inválido (use DDD + número).');return;}
-
-  // Validações específicas por cenário
-  if(isOwnerEdit){
-    // Dono: senha opcional (pra "Meu Painel")
-    if(pass){
-      if(pass.length<4){alert('Se preencher senha, ela deve ter pelo menos 4 caracteres.');return;}
-      const dup=loadedBarbers.find(x=>x._key!==barberSt.key&&x.pass===pass);
-      if(dup){alert(`Senha já em uso por "${dup.name}". Escolha outra.`);return;}
-    }
-  } else if(isNew){
-    // Barbeiro novo: precisa de email + senha pra criar conta Firebase Auth
-    if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert('Email inválido.');return;}
-    if(!pass||pass.length<6){alert('Senha precisa ter pelo menos 6 caracteres.');return;}
-    const dupEmail=loadedBarbers.find(x=>x.email===email);
-    if(dupEmail){alert(`Email já em uso por "${dupEmail.name}".`);return;}
-  } else if(hasAuthEmail){
-    // Editando barbeiro com Firebase Auth: não mexe em email/senha aqui (botão separado pra reset)
-  } else {
-    // Editando barbeiro LEGADO (senha-url): senha obrigatória
+  // Demais barbeiros: senha obrigatória. Dono: opcional, mas se preencher precisa ser válida.
+  if(!isOwnerEdit){
     if(!pass||pass.length<4){alert('Senha deve ter pelo menos 4 caracteres.');return;}
     const dup=loadedBarbers.find(x=>x._key!==barberSt.key&&x.pass===pass);
     if(dup){alert(`Senha já em uso por "${dup.name}". Escolha outra.`);return;}
+  } else if(pass){
+    if(pass.length<4){alert('Se preencher senha, ela deve ter pelo menos 4 caracteres.');return;}
+    const dup=loadedBarbers.find(x=>x._key!==barberSt.key&&x.pass===pass);
+    if(dup){alert(`Senha já em uso por "${dup.name}". Escolha outra.`);return;}
   }
-
   let barberId=barberSt.key;
-  try{
-    if(barberId){
-      // EDIÇÃO
-      let data;
-      if(isOwnerEdit){data={name,subtitle,phone,pass:pass||''};}
-      else if(hasAuthEmail){data={name,subtitle,phone,shareWithOwner:share};}
-      else {data={name,pass,subtitle,phone,shareWithOwner:share};}
-      await fs.update('barbeiros', barberId, data);
-      if(currentUser&&currentUser.id===barberId){currentUser.name=name;adjustAdminUIForUser();}
-    } else {
-      // NOVO — cria Firebase Auth + Firestore docs
-      barberId=await fs.createBarberAccount(email,pass,name,phone,subtitle,share);
-    }
-  }catch(e){
-    if(e?.code==='auth/email-already-in-use'){alert('Já existe uma conta com esse email.');return;}
-    if(e?.code==='auth/weak-password'){alert('Senha muito fraca.');return;}
-    if(e?.code==='auth/invalid-email'){alert('Email inválido.');return;}
-    alert('Erro ao salvar: '+(e.message||e));
-    return;
+  if(barberId){
+    const data=isOwnerEdit?{name,subtitle,phone,pass:pass||''}:{name,pass,subtitle,phone,shareWithOwner:share};
+    await fs.update('barbeiros', barberId, data);
+    if(currentUser&&currentUser.id===barberId){currentUser.name=name;adjustAdminUIForUser();}
+  } else {
+    barberId=await fs.add('barbeiros',{name,pass,subtitle,phone,isOwner:false,shareWithOwner:share,ts:Date.now()});
   }
   // Upload da foto, se houver
   if(barberSt.pendingPhotoFile){
@@ -2510,15 +2391,6 @@ async function doChangePassword(){
   try{await fs.changePassword(newPass);alert('Senha alterada com sucesso.');}
   catch(e){alert(mapAuthError(e));}
 }
-async function doSendBarberReset(){
-  const email=(document.getElementById('barber-email-inp').value||'').trim();
-  if(!email){alert('Sem email pra enviar.');return;}
-  if(!confirm(`Enviar email de redefinição de senha pra ${email}?`))return;
-  try{
-    await fs.sendBarberPasswordReset(email);
-    alert('Email enviado! O barbeiro vai receber um link pra criar nova senha.');
-  }catch(e){alert(mapAuthError(e));}
-}
 async function doForgotPassword(){
   // Pré-preenche com o email digitado no login, se houver
   const prefill=(document.getElementById('login-email')?.value||'').trim();
@@ -2632,27 +2504,14 @@ async function init(){
     resetShopState();
 
     if(state.user&&state.shopId){
-      // Logado E tem shop. Pode ser DONO (role: 'owner') ou BARBEIRO (role: 'barber').
-      const role=state.userData?.role||'owner';
-      if(role==='barber'){
-        // Barbeiro: currentUser.id é o barbeiroId (não o uid), pra visibleToCurrentUser filtrar certo
-        currentUser={
-          id:state.userData.barbeiroId,
-          name:state.user.displayName||state.user.email,
-          isOwner:false,
-          shareWithOwner:true,
-          firebaseUid:state.user.uid
-        };
-      } else {
-        // Dono
-        currentUser={
-          id:state.user.uid,
-          name:state.user.displayName||state.user.email,
-          isOwner:true,
-          shareWithOwner:true,
-          firebaseUid:state.user.uid
-        };
-      }
+      // Logado E tem shop → admin
+      currentUser={
+        id:state.user.uid,
+        name:state.user.displayName||state.user.email,
+        isOwner:true,
+        shareWithOwner:true,
+        firebaseUid:state.user.uid
+      };
       document.getElementById('btn-admin-logout').style.display='';
       await loadConfig(true);
       showScreen('s-admin');
