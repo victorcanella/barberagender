@@ -2,8 +2,16 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover">
 <title>Barbearia</title>
+<!-- PWA: manifest e meta tags -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#c9a55a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Barbearia">
+<link rel="apple-touch-icon" href="/icon-192.svg">
+<link rel="icon" type="image/svg+xml" href="/icon-192.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
@@ -262,6 +270,9 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 </style>
 </head>
 <body>
+<!-- Botão de instalar PWA (escondido até o browser dizer que é instalável) -->
+<button id="pwa-install-btn" onclick="doInstallPwa()" style="display:none;position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:9999;background:#0d0d0d;color:#c9a55a;border:1.5px solid #c9a55a;padding:10px 18px;border-radius:24px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);align-items:center;gap:8px">📲 Instalar app</button>
+
 <div id="app">
 
   <!-- S1 WELCOME -->
@@ -2541,6 +2552,45 @@ async function init(){
   });
 }
 document.addEventListener('DOMContentLoaded', init);
+
+// ──────────────────── PWA: SERVICE WORKER + INSTALL PROMPT ────────────────────
+// Registra o Service Worker (necessário pra ser instalável + cache offline)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('Service Worker não registrou:', err);
+    });
+  });
+}
+
+// Captura o evento "instalável" do browser e mostra botão pra usuário
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  showInstallButton();
+});
+window.addEventListener('appinstalled', () => {
+  _deferredInstallPrompt = null;
+  hideInstallButton();
+});
+
+function showInstallButton() {
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'flex';
+}
+function hideInstallButton() {
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+}
+async function doInstallPwa() {
+  if (!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  console.log('PWA install:', outcome); // 'accepted' ou 'dismissed'
+  _deferredInstallPrompt = null;
+  hideInstallButton();
+}
 </script>
 </body>
 </html>
