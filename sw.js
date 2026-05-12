@@ -12,13 +12,13 @@
 // vão limpar o cache antigo automaticamente.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'barbearia-shell-v3';
+const CACHE_VERSION = 'barbearia-shell-v4';
 const SHELL_FILES = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon-192.svg',
-  '/icon-512.svg',
+  '/maskable_icon_x192.png',
+  '/maskable_icon_x512.png',
 ];
 
 // INSTALL: pré-carrega arquivos da shell no cache
