@@ -267,7 +267,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
   <!-- S1 WELCOME -->
   <div id="s1" class="screen active">
     <div class="logo-hdr" style="position:relative">
-      <div class="shop-name" id="shop-name-big">Barbearia</div>
+      <div class="shop-name" id="shop-name-big" style="visibility:hidden">Barbearia</div>
       <a id="link-owner-login" onclick="goToLogin()" style="position:absolute;top:14px;right:14px;color:var(--gold);font-size:11px;cursor:pointer;font-weight:600;text-decoration:none;letter-spacing:.5px">SOU DA BARBEARIA →</a>
     </div>
     <div class="body" style="display:flex;flex-direction:column;gap:18px">
@@ -418,7 +418,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
   <!-- ADMIN -->
   <div id="s-admin" class="screen">
     <div class="logo-hdr" style="padding:14px 20px;text-align:left">
-      <div class="shop-name-sm" id="shop-name-sm">Barbearia</div>
+      <div class="shop-name-sm" id="shop-name-sm" style="visibility:hidden">Barbearia</div>
     </div>
     <div class="admin-bar">
       <span class="admin-badge">🔐 PAINEL DO DONO</span>
@@ -936,7 +936,10 @@ function getShopName(){return (appCfg.shopName||'Barbearia');}
 function applyShopName(){
   const n=getShopName();
   try{document.title=n;}catch(e){}
-  ['shop-name-big','shop-name-sm','ok-shop-name'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=n;});
+  ['shop-name-big','shop-name-sm','ok-shop-name'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.textContent=n;el.style.visibility='visible';}
+  });
 }
 function normalizeWA(p){
   const d=(p||'').toString().replace(/\D/g,'');
