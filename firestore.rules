@@ -1,0 +1,84 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Security Rules do Firestore — Fase 1 (pragmática)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Objetivo desta fase:
+//   1. Bloquear acesso cross-tenant: dono A não consegue mexer em dados de B.
+//   2. Permitir cliente final (anônimo) criar agendamento e ler dados públicos.
+//   3. Manter o fluxo legado `?admin=<senha>` funcionando — agendamentos podem ser
+//      atualizados sem autenticação Firebase (segurança via "shopId é segredo").
+//
+// Limitações conhecidas (a corrigir em fases futuras):
+//   - Qualquer um que descubra o shopId pode mexer nos agendamentos desse shop.
+//     Solução real: migrar barbeiros pra Firebase Auth e exigir auth pra mudanças.
+//   - Leituras de agendamentos são públicas (cliente precisa pra ver slots ocupados).
+//     Solução: agregar slots ocupados num doc separado e ler só esse.
+//
+// Como deployar:
+//   1. Firebase Console → seu projeto → Firestore Database → aba "Rules"
+//   2. Apaga o conteúdo atual, cola este arquivo inteiro
+//   3. Clica "Publish"
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───── Helpers ─────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwnerOfShop(shopId) {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.shopId == shopId;
+    }
+
+    // ───── /users/{uid} ─────
+    // Cada usuário só lê/escreve o próprio doc.
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ───── /shops/{shopId} ─────
+    match /shops/{shopId} {
+      // Leitura pública (cliente precisa pegar nome, config, etc.)
+      allow read: if true;
+      // Criar shop: só autenticado (no signup)
+      allow create: if isSignedIn();
+      // Atualizar/deletar: só o dono do shop
+      allow update, delete: if isOwnerOfShop(shopId);
+
+      // ───── Subcoleções ─────
+      // Cliente final precisa LER barbeiros/categorias/itens/bloqueios pra montar a UI de agendamento.
+      // Escrita nessas subcoleções fica restrita ao dono.
+
+      match /barbeiros/{barberId} {
+        allow read: if true;
+        allow write: if isOwnerOfShop(shopId);
+      }
+      match /categorias/{catId} {
+        allow read: if true;
+        allow write: if isOwnerOfShop(shopId);
+      }
+      match /itens/{itemId} {
+        allow read: if true;
+        allow write: if isOwnerOfShop(shopId);
+      }
+      match /bloqueios/{blockId} {
+        allow read: if true;
+        allow write: if isOwnerOfShop(shopId);
+      }
+
+      // Agendamentos: cliente CRIA o próprio agendamento sem login.
+      // Update/delete fica aberto por enquanto pro fluxo `?admin=` dos barbeiros funcionar.
+      // Quando migrar barbeiros pra Firebase Auth (fase futura), trocar isso pra isOwnerOfShop(shopId) || isBarberOf(shopId).
+      match /agendamentos/{bookingId} {
+        allow read: if true;
+        allow create: if true;
+        allow update, delete: if true; // ← apertar futuramente
+      }
+    }
+  }
+}

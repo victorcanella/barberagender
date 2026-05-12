@@ -605,8 +605,8 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
 import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
-import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updatePassword as fbUpdatePassword, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js';
+import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updatePassword as fbUpdatePassword, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup, deleteUser } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, listAll, deleteObject } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js';
 
 // ========== COLE A SUA CONFIG DO PROJETO NOVO AQUI ==========
 const firebaseConfig = {
@@ -797,6 +797,64 @@ window.fs = {
     const ref = storageRef(storage, path);
     await uploadBytes(ref, compressed);
     return await getDownloadURL(ref);
+  },
+
+  // ════ EXCLUIR CONTA ════
+  // Re-autentica o usuário (necessário pra delete por motivos de segurança do Firebase)
+  async reauthenticate(password) {
+    if (!auth.currentUser) throw new Error('Não autenticado.');
+    // Se logou com Google, reabre popup; se logou com email/senha, usa o credential
+    const providers = auth.currentUser.providerData.map(p => p.providerId);
+    if (providers.includes('google.com') && !password) {
+      await reauthenticateWithPopup(auth.currentUser, googleProvider);
+    } else {
+      if (!password) throw new Error('Senha necessária pra re-autenticar.');
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+    }
+  },
+
+  // Exclui em cascata: Storage → subcoleções Firestore → shop doc → user doc → conta Auth.
+  // Se falhar por "requires-recent-login", chame reauthenticate() antes e tente de novo.
+  async deleteAccount() {
+    if (!auth.currentUser) throw new Error('Não autenticado.');
+    if (!SHOP_ID) throw new Error('Sem shop ativo.');
+    const user = auth.currentUser;
+    const uid = user.uid;
+    const shopId = SHOP_ID;
+
+    // 1) Storage — lista e apaga todos os arquivos sob shops/{shopId}/
+    try {
+      const folderRef = storageRef(storage, `shops/${shopId}`);
+      const all = await listAll(folderRef);
+      // Apaga arquivos no nível atual
+      await Promise.all(all.items.map(item => deleteObject(item)));
+      // Apaga arquivos em subpastas (barbeiros/, etc.)
+      for (const prefix of all.prefixes) {
+        const sub = await listAll(prefix);
+        await Promise.all(sub.items.map(item => deleteObject(item)));
+      }
+    } catch (e) {
+      console.warn('Storage cleanup falhou (pode ser que não havia arquivos):', e.message);
+    }
+
+    // 2) Firestore — apaga subcoleções do shop
+    const subs = ['barbeiros', 'agendamentos', 'categorias', 'itens', 'bloqueios'];
+    for (const sub of subs) {
+      const snap = await getDocs(collection(db, `shops/${shopId}/${sub}`));
+      await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+    }
+
+    // 3) Apaga o documento do shop
+    await deleteDoc(doc(db, `shops/${shopId}`));
+
+    // 4) Apaga /users/{uid}
+    await deleteDoc(doc(db, `users/${uid}`));
+
+    // 5) Apaga a conta no Firebase Auth (precisa de login recente — daí o reauthenticate)
+    await deleteUser(user);
+
+    SHOP_ID = null;
   }
 };
 
@@ -1880,6 +1938,10 @@ async function loadConfigTab(){
     <div class="sub" style="margin-bottom:14px">Gerencie acesso e segurança da conta do dono.</div>
     <button class="btn" onclick="doChangePassword()" style="background:#f0f0f0;color:#111;border:1px solid #ddd;padding:14px;border-radius:13px;font-weight:600;width:100%">🔑 Mudar senha</button>
     <button class="btn" onclick="doLogout()" style="background:#fff;color:#c33;border:1px solid #f0c0c0;padding:14px;border-radius:13px;font-weight:600;width:100%;margin-top:10px">🚪 Sair</button>
+
+    <div class="h1" style="font-size:18px;margin:28px 0 8px;color:#c33">⚠️ Zona de risco</div>
+    <div class="sub" style="margin-bottom:14px">Ações irreversíveis. Faça backup de tudo antes.</div>
+    <button class="btn" onclick="doDeleteAccount()" style="background:#fff;color:#c33;border:1px solid #c33;padding:14px;border-radius:13px;font-weight:700;width:100%">🗑️ Excluir minha conta e barbearia</button>
   `;
 }
 async function copyCustomerLink(){
@@ -2330,6 +2392,43 @@ async function doForgotPassword(){
     await fs.resetPassword(trimmed);
     alert('Email enviado! Confere sua caixa de entrada (e o spam). O link expira em 1 hora.');
   }catch(e){alert(mapAuthError(e));}
+}
+async function doDeleteAccount(){
+  // 1) Confirmação forte: usuário digita o nome da barbearia
+  const shopName=getShopName();
+  const msg=`⚠️ Você está prestes a EXCLUIR PERMANENTEMENTE:\n\n• A barbearia "${shopName}"\n• Todos os agendamentos\n• Todos os barbeiros e fotos\n• Cardápio, bloqueios, configurações\n• Sua conta de acesso\n\nIsso NÃO PODE ser desfeito.\n\nPara confirmar, digite o nome exato da barbearia:`;
+  const typed=prompt(msg);
+  if(typed===null)return;
+  if(typed.trim()!==shopName){alert('Nome não confere. Exclusão cancelada.');return;}
+  if(!confirm(`Última chance. Excluir "${shopName}" agora? Não dá pra voltar atrás.`))return;
+  // 2) Tenta excluir. Se falhar com "requires-recent-login", força re-autenticação.
+  try{
+    await fs.deleteAccount();
+    alert('Conta excluída. Até logo. 👋');
+    location.reload();
+    return;
+  }catch(e){
+    if(e?.code==='auth/requires-recent-login'){
+      // Re-autenticação necessária
+      const u=fs.getCurrentAuthUser();
+      const isGoogle=u?.providerData?.some(p=>p.providerId==='google.com');
+      try{
+        if(isGoogle){
+          await fs.reauthenticate();
+        }else{
+          const pwd=prompt('Por segurança, confirme sua senha:');
+          if(!pwd)return;
+          await fs.reauthenticate(pwd);
+        }
+        // Tenta de novo
+        await fs.deleteAccount();
+        alert('Conta excluída. Até logo. 👋');
+        location.reload();
+      }catch(e2){alert('Re-autenticação falhou: '+mapAuthError(e2));}
+    }else{
+      alert('Erro ao excluir: '+(e.message||e));
+    }
+  }
 }
 function mapAuthError(e){
   const code=e?.code||'';
