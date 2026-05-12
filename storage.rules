@@ -18,17 +18,18 @@ service firebase.storage {
 
     // Arquivos sob shops/{shopId}/...
     match /shops/{shopId}/{allPaths=**} {
-      // Leitura pública (fotos aparecem pro cliente no fluxo de agendamento)
+      // Leitura e listagem públicas (cliente vê fotos no fluxo de agendamento)
       allow read: if true;
 
-      // Escrita: precisa estar autenticado.
-      // Idealmente também checaria se o uid corresponde ao dono do shop, mas isso
-      // exige cross-service rules (Storage lendo Firestore) que são mais complexas.
-      // Por enquanto: qualquer pessoa logada pode subir, o que limita o ataque a
-      // usuários que se cadastraram. Vamos apertar isso na próxima fase.
-      allow write: if request.auth != null
-                   && request.resource.size < 5 * 1024 * 1024  // máx 5 MB
-                   && request.resource.contentType.matches('image/.*');
+      // Upload: precisa estar autenticado, tipo imagem, máx 5 MB.
+      // NÃO usar "write" aqui porque write inclui delete, e em delete o
+      // request.resource é null, o que faz a regra falhar silenciosamente.
+      allow create, update: if request.auth != null
+                            && request.resource.size < 5 * 1024 * 1024
+                            && request.resource.contentType.matches('image/.*');
+
+      // Delete: só checa autenticação (request.resource é null em delete)
+      allow delete: if request.auth != null;
     }
 
     // Tudo mais fora de /shops/ fica bloqueado

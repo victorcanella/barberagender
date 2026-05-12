@@ -824,18 +824,29 @@ window.fs = {
     const shopId = SHOP_ID;
 
     // 1) Storage — lista e apaga todos os arquivos sob shops/{shopId}/
+    // Coletamos erros (sem abortar) pra reportar no fim. Storage não tem transação.
+    const storageErrors = [];
     try {
       const folderRef = storageRef(storage, `shops/${shopId}`);
       const all = await listAll(folderRef);
       // Apaga arquivos no nível atual
-      await Promise.all(all.items.map(item => deleteObject(item)));
+      for (const item of all.items) {
+        try { await deleteObject(item); } catch (e) { storageErrors.push(`${item.fullPath}: ${e.message}`); }
+      }
       // Apaga arquivos em subpastas (barbeiros/, etc.)
       for (const prefix of all.prefixes) {
         const sub = await listAll(prefix);
-        await Promise.all(sub.items.map(item => deleteObject(item)));
+        for (const item of sub.items) {
+          try { await deleteObject(item); } catch (e) { storageErrors.push(`${item.fullPath}: ${e.message}`); }
+        }
       }
     } catch (e) {
-      console.warn('Storage cleanup falhou (pode ser que não havia arquivos):', e.message);
+      storageErrors.push(`Listagem falhou: ${e.message}`);
+    }
+    if (storageErrors.length) {
+      console.error('⚠️ Storage cleanup com problemas:', storageErrors);
+      // Não trava o delete da conta — só avisa
+      window._lastStorageDeleteErrors = storageErrors;
     }
 
     // 2) Firestore — apaga subcoleções do shop
@@ -2402,9 +2413,16 @@ async function doDeleteAccount(){
   if(typed.trim()!==shopName){alert('Nome não confere. Exclusão cancelada.');return;}
   if(!confirm(`Última chance. Excluir "${shopName}" agora? Não dá pra voltar atrás.`))return;
   // 2) Tenta excluir. Se falhar com "requires-recent-login", força re-autenticação.
+  function afterDeleteMessage(){
+    const errs=window._lastStorageDeleteErrors||[];
+    if(errs.length){
+      return `Conta excluída. ⚠️ ${errs.length} arquivo(s) do Storage não puderam ser apagados — confere no Console do Firebase e apaga manualmente se quiser. Detalhes no Console do navegador (F12).`;
+    }
+    return 'Conta excluída. Até logo. 👋';
+  }
   try{
     await fs.deleteAccount();
-    alert('Conta excluída. Até logo. 👋');
+    alert(afterDeleteMessage());
     location.reload();
     return;
   }catch(e){
@@ -2422,7 +2440,7 @@ async function doDeleteAccount(){
         }
         // Tenta de novo
         await fs.deleteAccount();
-        alert('Conta excluída. Até logo. 👋');
+        alert(afterDeleteMessage());
         location.reload();
       }catch(e2){alert('Re-autenticação falhou: '+mapAuthError(e2));}
     }else{
