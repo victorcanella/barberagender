@@ -289,6 +289,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
       <div><label class="inp-label">Senha</label><input id="login-pass" class="inp" type="password" placeholder="••••••••" autocomplete="current-password"></div>
       <p id="login-err" style="color:#c33;font-size:13px;display:none;margin:0"></p>
       <button id="btn-login" class="btn btn-blk" onclick="doLogin()">Entrar →</button>
+      <p style="text-align:center;font-size:12px;color:#888;margin:0"><a onclick="doForgotPassword()" style="color:var(--gold-deep);cursor:pointer;font-weight:600">Esqueci minha senha</a></p>
       <div style="display:flex;align-items:center;gap:10px;margin:4px 0;color:#bbb;font-size:12px"><div style="flex:1;height:1px;background:#eee"></div>ou<div style="flex:1;height:1px;background:#eee"></div></div>
       <button id="btn-login-google" class="btn" onclick="doSignInGoogle()" style="background:#fff;border:1px solid #ddd;color:#444;padding:14px;border-radius:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">🌐 Entrar com Google</button>
       <p style="text-align:center;font-size:13px;color:#666;margin-top:10px">Não tem conta? <a onclick="goToSignup()" style="color:var(--gold-deep);cursor:pointer;font-weight:600">Cadastre-se</a></p>
@@ -604,7 +605,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
 import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
-import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updatePassword as fbUpdatePassword } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updatePassword as fbUpdatePassword, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js';
 
 // ========== COLE A SUA CONFIG DO PROJETO NOVO AQUI ==========
@@ -718,6 +719,10 @@ window.fs = {
   async changePassword(newPassword) {
     if (!auth.currentUser) throw new Error('Não autenticado.');
     await fbUpdatePassword(auth.currentUser, newPassword);
+  },
+  // Envia email com link de recuperação de senha
+  async resetPassword(email) {
+    await sendPasswordResetEmail(auth, email);
   },
   // Helper interno: cria shop, user doc e dono barbeiro pra um usuário Firebase Auth recém-criado
   async _bootstrapShop(user, shopName, whatsapp) {
@@ -2311,6 +2316,18 @@ async function doChangePassword(){
   try{await fs.changePassword(newPass);alert('Senha alterada com sucesso.');}
   catch(e){alert(mapAuthError(e));}
 }
+async function doForgotPassword(){
+  // Pré-preenche com o email digitado no login, se houver
+  const prefill=(document.getElementById('login-email')?.value||'').trim();
+  const email=prompt('Digite seu email pra receber o link de recuperação:',prefill);
+  if(email===null)return; // cancelou
+  const trimmed=email.trim();
+  if(!trimmed||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)){alert('Email inválido.');return;}
+  try{
+    await fs.resetPassword(trimmed);
+    alert('Email enviado! Confere sua caixa de entrada (e o spam). O link expira em 1 hora.');
+  }catch(e){alert(mapAuthError(e));}
+}
 function mapAuthError(e){
   const code=e?.code||'';
   const map={
@@ -2391,6 +2408,12 @@ async function init(){
       if(!FB_OK)document.getElementById('cfg-warn').classList.add('show');
       const customerShopId=shopFromUrl||'temporario-001';
       fs.setShopId(customerShopId);
+      // Quando o cliente acessa um shop específico, esconde o link "SOU DA BARBEARIA"
+      // (evita cadastros de dono acidentais; só faz sentido na URL raiz).
+      if(shopFromUrl){
+        const link=document.getElementById('link-owner-login');
+        if(link)link.style.display='none';
+      }
       await loadConfig(true);
       await loadBarbers(true);
       if(loadedBarbers.length===1){st.barbeiroId=loadedBarbers[0]._key;st.barbeiroName=loadedBarbers[0].name||'';}
