@@ -45,25 +45,53 @@
   ],
   "screenshots": [
     {
-      "src": "screenshots/screen-1-mobile.png",
+      "src": "screenshots/cliente-1.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Tela inicial de agendamento"
+      "label": "Agendamento simples para o cliente"
     },
     {
-      "src": "screenshots/screen-2-mobile.png",
+      "src": "screenshots/cliente-2.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Painel do barbeiro"
+      "label": "Escolha de serviços e horários"
     },
     {
-      "src": "screenshots/screen-3-mobile.png",
+      "src": "screenshots/cliente-3.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Relatórios e faturamento"
+      "label": "Confirmação do agendamento"
+    },
+    {
+      "src": "screenshots/dono-1.jpeg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Painel do dono — agenda do dia"
+    },
+    {
+      "src": "screenshots/dono-2.jpeg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Gestão de serviços e preços"
+    },
+    {
+      "src": "screenshots/dono-3.jpeg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Cadastro de profissionais"
+    },
+    {
+      "src": "screenshots/dono-4.jpeg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Relatórios de faturamento"
     }
   ],
   "shortcuts": [
