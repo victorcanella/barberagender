@@ -12,7 +12,7 @@
 // vão limpar o cache antigo automaticamente.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'barbearia-shell-v4';
+const CACHE_VERSION = 'barbearia-shell-v5';
 const SHELL_FILES = [
   '/',
   '/index.html',
@@ -57,6 +57,12 @@ self.addEventListener('fetch', (event) => {
     url.hostname.endsWith('gstatic.com')
   ) {
     return; // deixa o browser fazer normal
+  }
+
+  // Digital Asset Links e arquivos .well-known: sempre rede, nunca cache.
+  // (Google verifica esse arquivo pra TWA — precisa ser sempre a versão atual)
+  if (url.pathname.startsWith('/.well-known/')) {
+    return;
   }
 
   // Pra arquivos da shell e do próprio domínio: cache-first

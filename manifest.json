@@ -1,26 +1,85 @@
 {
-  "name": "Plus Barber",
+  "name": "Plus Barber - Agendamento para Barbearias",
   "short_name": "Plus Barber",
-  "description": "Sistema de agendamento para barbearias",
+  "description": "Sistema completo de agendamento online para barbearias. Gerencie horários, clientes, profissionais e relatórios em um só lugar.",
+  "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#0d0d0d",
   "theme_color": "#0d0d0d",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "lifestyle"],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "maskable_icon_x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "maskable_icon_x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "maskable_icon_x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "maskable_icon_x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "lang": "pt-BR"
+  "screenshots": [
+    {
+      "src": "screenshots/screen-1-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tela inicial de agendamento"
+    },
+    {
+      "src": "screenshots/screen-2-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Painel do barbeiro"
+    },
+    {
+      "src": "screenshots/screen-3-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Relatórios e faturamento"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novo agendamento",
+      "short_name": "Agendar",
+      "description": "Cria um novo agendamento rápido",
+      "url": "/?action=novo",
+      "icons": [{ "src": "maskable_icon_x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Meus agendamentos",
+      "short_name": "Painel",
+      "description": "Abre o painel do barbeiro",
+      "url": "/?action=painel",
+      "icons": [{ "src": "maskable_icon_x192.png", "sizes": "192x192" }]
+    }
+  ]
 }
